@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Custom hooks
 import { useProfile } from "@/hooks/useProfile";
@@ -77,16 +77,18 @@ const Profile = () => {
         <LogoutButton onLogout={handleLogout} />
         
         {/* Edit Profile Dialog */}
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Profile</DialogTitle>
-          </DialogHeader>
-          <EditProfileForm 
-            profile={profile} 
-            setProfile={setProfile} 
-            setOpen={setOpen} 
-          />
-        </DialogContent>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Profile</DialogTitle>
+            </DialogHeader>
+            <EditProfileForm 
+              profile={profile} 
+              setProfile={setProfile} 
+              setOpen={setOpen} 
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
