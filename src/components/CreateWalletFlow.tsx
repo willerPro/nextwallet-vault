@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -60,10 +61,12 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Get the next wallet number
-      const { data: existingWallets } = await supabase
+      const { data: existingWallets, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
         .eq('user_id', user.id);
+        
+      if (fetchError) throw fetchError;
         
       const walletNumber = existingWallets ? existingWallets.length + 1 : 1;
       const walletName = `Wallet-${walletNumber.toString().padStart(2, '0')}`;
