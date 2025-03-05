@@ -35,7 +35,12 @@ const Dashboard = () => {
         return [];
       }
       
-      return data as Transaction[];
+      // Convert any numeric fields to string as required by the Transaction interface
+      return data.map(tx => ({
+        ...tx,
+        amount: String(tx.amount),  // Convert number to string
+        value_usd: String(tx.value_usd),  // Convert number to string
+      })) as Transaction[];
     },
   });
 
