@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import CreateWalletFlow from "@/components/CreateWalletFlow";
+import { useNavigate } from "react-router-dom";
 
 type Wallet = {
   id: string;
@@ -19,6 +20,7 @@ type Wallet = {
 const Wallet = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCreateFlow, setShowCreateFlow] = useState(false);
 
@@ -63,6 +65,10 @@ const Wallet = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  const handleWalletClick = (walletId: string) => {
+    navigate(`/wallet/${walletId}`);
+  };
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
@@ -130,10 +136,11 @@ const Wallet = () => {
                     <GlassCard 
                       key={wallet.id}
                       variant="dark"
-                      className="flex justify-between items-center"
+                      className="flex justify-between items-center cursor-pointer hover:bg-card/90"
                       initial={{ x: -20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: 0.2 + index * 0.1, duration: 0.3 }}
+                      onClick={() => handleWalletClick(wallet.id)}
                     >
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mr-3">

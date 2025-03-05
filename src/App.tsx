@@ -12,6 +12,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Wallet from "./pages/Wallet";
+import WalletDetails from "./pages/WalletDetails";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -36,6 +37,7 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/wallet" element={<Wallet />} />
+                <Route path="/wallet/:id" element={<WalletDetails />} />
                 <Route path="/wallet-setup" element={<WalletSetup />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/profile" element={<Profile />} />
