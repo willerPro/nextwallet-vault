@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -37,7 +36,6 @@ const Dashboard = () => {
         return [];
       }
       
-      // Convert any numeric fields to string as required by the Transaction interface
       return data.map(tx => ({
         ...tx,
         amount: String(tx.amount),  // Convert number to string
@@ -49,7 +47,6 @@ const Dashboard = () => {
   const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
     queryKey: ["crypto-assets"],
     queryFn: async () => {
-      // First get all crypto assets
       const { data: cryptoAssets, error: assetsError } = await supabase
         .from("crypto_assets")
         .select("*");
@@ -59,7 +56,6 @@ const Dashboard = () => {
         return [];
       }
 
-      // Then get user holdings
       const { data: holdings, error: holdingsError } = await supabase
         .from("user_crypto_holdings")
         .select(`
@@ -72,25 +68,22 @@ const Dashboard = () => {
         return [];
       }
 
-      // If no holdings, return sample data for demonstration
       if (!holdings || holdings.length === 0) {
-        // Return top assets with zero balance for demo
         return cryptoAssets.slice(0, 4).map(asset => ({
           id: asset.id,
           symbol: asset.symbol,
           name: asset.name,
-          balance: Math.random() * 0.5, // Small random balance for demo
+          balance: Math.random() * 0.5,
           price: parseFloat(asset.current_price),
           priceChange: parseFloat(asset.price_change_24h),
           logo_url: asset.logo_url
         }));
       }
 
-      // Map holdings to the format we need
       return holdings.map(holding => {
         const asset = holding.crypto_assets;
         return {
-          id: String(holding.id),  // Convert to string if needed
+          id: String(holding.id),
           symbol: asset.symbol,
           name: asset.name,
           balance: parseFloat(String(holding.balance)),
@@ -103,18 +96,16 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    // Calculate total balance from assets
     if (assets && assets.length > 0) {
       const total = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
       setTotalBalance(total);
       
-      // Calculate weighted average change
       const totalValue = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
       const weightedChange = assets.reduce(
         (sum, asset) => sum + (asset.balance * asset.price * asset.priceChange) / totalValue, 
         0
       );
-      setBalanceChange(weightedChange || 3.45); // Fallback to sample value if calculation is 0
+      setBalanceChange(weightedChange || 3.45);
     }
   }, [assets]);
 
@@ -132,7 +123,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      {/* Header */}
       <motion.header 
         className="p-4 flex justify-between items-center"
         initial={{ y: -20, opacity: 0 }}
@@ -145,9 +135,7 @@ const Dashboard = () => {
         </Button>
       </motion.header>
 
-      {/* Main content */}
       <div className="flex-1 px-4 space-y-6">
-        {/* Balance card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -187,7 +175,6 @@ const Dashboard = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Recent transactions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -208,7 +195,7 @@ const Dashboard = () => {
             <div className="space-y-3">
               {[1, 2, 3].map((_, index) => (
                 <GlassCard key={index} variant="dark" className="h-16 animate-pulse">
-                  <div></div> {/* Empty div as child */}
+                  <div></div>
                 </GlassCard>
               ))}
             </div>

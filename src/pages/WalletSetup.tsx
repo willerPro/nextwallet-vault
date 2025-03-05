@@ -1,15 +1,18 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Wallet, Plus, Key } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const WalletSetup = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const [checkingWallets, setCheckingWallets] = useState(true);
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -17,6 +20,36 @@ const WalletSetup = () => {
     // Redirect to home if not authenticated
     if (!loading && !user) {
       navigate('/');
+      return;
+    }
+
+    // Check if user already has wallets
+    const checkForExistingWallets = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: wallets, error } = await supabase
+          .from('wallets')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+          
+        if (error) throw error;
+        
+        // If wallets exist, redirect to wallet page
+        if (wallets && wallets.length > 0) {
+          navigate('/wallet');
+        }
+      } catch (err) {
+        console.error("Error checking wallets:", err);
+        toast.error("Something went wrong");
+      } finally {
+        setCheckingWallets(false);
+      }
+    };
+    
+    if (user) {
+      checkForExistingWallets();
     }
   }, [user, loading, navigate]);
 
@@ -30,11 +63,16 @@ const WalletSetup = () => {
     navigate("/wallet");
   };
 
-  // Show loading state or nothing if not authenticated
-  if (loading || !user) {
+  // Show loading state for authentication or wallet checking
+  if (loading || checkingWallets) {
     return <div className="min-h-screen flex items-center justify-center">
       <div className="animate-pulse text-gold">Loading...</div>
     </div>;
+  }
+
+  // Return nothing if not authenticated
+  if (!user) {
+    return null;
   }
 
   return (
