@@ -45,6 +45,39 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_wallets: {
+        Row: {
+          asset_id: string
+          asset_name: string
+          asset_symbol: string
+          created_at: string
+          id: string
+          network: string
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          asset_id: string
+          asset_name: string
+          asset_symbol: string
+          created_at?: string
+          id?: string
+          network: string
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          asset_id?: string
+          asset_name?: string
+          asset_symbol?: string
+          created_at?: string
+          id?: string
+          network?: string
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       binary_signal: {
         Row: {
           Action: string | null

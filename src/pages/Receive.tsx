@@ -8,8 +8,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import QRCode from "react-qr-code";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CryptoAsset {
   id: string;
@@ -20,6 +20,7 @@ interface CryptoAsset {
   priceChange: number;
   balance: number;
   walletAddress: string;
+  network: string;
 }
 
 const Receive = () => {
@@ -41,7 +42,18 @@ const Receive = () => {
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ["receive-crypto-assets"],
     queryFn: async () => {
-      // This would be replaced with actual API data
+      // Fetch wallet addresses from the database
+      const { data: walletData, error } = await supabase
+        .from('asset_wallets')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching wallet addresses:", error);
+        throw error;
+      }
+      
+      // This would be replaced with actual API data in production
+      // but for now we'll merge our wallet data with hardcoded asset data
       return [
         {
           id: "bnb",
@@ -51,7 +63,8 @@ const Receive = () => {
           price: 590.7,
           priceChange: 2.45,
           balance: 0,
-          walletAddress: "bnb136ns6lfw4zs5hg4n85vdthaad7hq5m4gtkgf23"
+          walletAddress: walletData?.find(w => w.asset_id === "bnb")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "bnb")?.network || "Binance Smart Chain"
         },
         {
           id: "btc",
@@ -61,7 +74,8 @@ const Receive = () => {
           price: 88985.99,
           priceChange: 3.7,
           balance: 0,
-          walletAddress: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+          walletAddress: walletData?.find(w => w.asset_id === "btc")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "btc")?.network || "Bitcoin"
         },
         {
           id: "eth-erc20",
@@ -71,7 +85,8 @@ const Receive = () => {
           price: 2180.39,
           priceChange: 2.29,
           balance: 0,
-          walletAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+          walletAddress: walletData?.find(w => w.asset_id === "eth-erc20")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "eth-erc20")?.network || "Ethereum"
         },
         {
           id: "eth-arbitrum",
@@ -81,7 +96,8 @@ const Receive = () => {
           price: 2180.39,
           priceChange: 2.29,
           balance: 0,
-          walletAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+          walletAddress: walletData?.find(w => w.asset_id === "eth-arbitrum")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "eth-arbitrum")?.network || "Arbitrum"
         },
         {
           id: "pol",
@@ -91,7 +107,8 @@ const Receive = () => {
           price: 0.2524,
           priceChange: 2.38,
           balance: 0,
-          walletAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+          walletAddress: walletData?.find(w => w.asset_id === "pol")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "pol")?.network || "Polygon"
         },
         {
           id: "sfp",
@@ -101,7 +118,8 @@ const Receive = () => {
           price: 0.5991,
           priceChange: 1.76,
           balance: 0,
-          walletAddress: "bnb136ns6lfw4zs5hg4n85vdthaad7hq5m4gtkgf23"
+          walletAddress: walletData?.find(w => w.asset_id === "sfp")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "sfp")?.network || "Binance Smart Chain"
         },
         {
           id: "ton",
@@ -111,7 +129,8 @@ const Receive = () => {
           price: 3.033,
           priceChange: -2.31,
           balance: 0,
-          walletAddress: "EQA0i8-CdGnF_DhUHHf92R1ONH6sIA9vLZ_WLcCIhfBBXwtG"
+          walletAddress: walletData?.find(w => w.asset_id === "ton")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "ton")?.network || "TON"
         },
         {
           id: "trx",
@@ -121,7 +140,8 @@ const Receive = () => {
           price: 0.2436,
           priceChange: 1.96,
           balance: 0,
-          walletAddress: "TEdtKUZg9aBBPTv9tCGySKx1kmP9NEDdkk"
+          walletAddress: walletData?.find(w => w.asset_id === "trx")?.wallet_address || "",
+          network: walletData?.find(w => w.asset_id === "trx")?.network || "TRON"
         }
       ] as CryptoAsset[];
     }
@@ -304,7 +324,7 @@ const Receive = () => {
               
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Only send {selectedAsset.symbol} to this address. Sending any other coins may result in permanent loss.
+                  Only send {selectedAsset.symbol} ({selectedAsset.network}) to this address. Sending any other coins may result in permanent loss.
                 </p>
                 <div className="flex gap-2 justify-center">
                   <Button 
