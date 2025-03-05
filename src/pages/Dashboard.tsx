@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, ArrowDown, Coins, Eye, EyeOff } from "lucide-react";
+import { ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,23 +16,14 @@ type Transaction = {
   created_at: string;
 };
 
-type Asset = {
-  id: string;
-  name: string;
-  symbol: string;
-  balance: number;
-  value: number;
-};
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [recentTransactions, setRecentTransactions] = useState<Transaction[] | null>(null);
-  const [assets, setAssets] = useState<Asset[] | null>(null);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(true);
   const [hideBalance, setHideBalance] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -57,37 +48,44 @@ const Dashboard = () => {
       }
     };
 
-    const fetchAssets = async () => {
+    const fetchBalance = async () => {
       if (!user) return;
 
-      setIsLoadingAssets(true);
+      setIsLoadingBalance(true);
       try {
-        // Use type assertion for the table name to bypass TypeScript checking
+        // Fetch user balance from the wallet table
         const { data, error } = await supabase
-          .from('wallets')
-          .select('*')
-          .eq('user_id', user.id);
+          .from('user_balances')
+          .select('total_balance')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
         if (error) {
-          console.error("Error fetching assets:", error);
+          console.error("Error fetching balance:", error);
+        } else if (data) {
+          setTotalBalance(data.total_balance || 0);
         } else {
-          // For demo purposes, create some mock asset data since 'assets' table doesn't exist
-          const mockAssets: Asset[] = [
-            { id: '1', name: 'Bitcoin', symbol: 'BTC', balance: 0.25, value: 15000 },
-            { id: '2', name: 'Ethereum', symbol: 'ETH', balance: 2.5, value: 7500 },
-          ];
-          setAssets(mockAssets);
-          // Calculate total balance
-          const total = mockAssets.reduce((sum, asset) => sum + asset.value, 0);
-          setTotalBalance(total);
+          // Fallback to wallets table if user_balances doesn't exist or has no data
+          const { data: walletData, error: walletError } = await supabase
+            .from('wallets')
+            .select('balance')
+            .eq('user_id', user.id);
+
+          if (walletError) {
+            console.error("Error fetching wallet balance:", walletError);
+          } else if (walletData && walletData.length > 0) {
+            // Sum up all wallet balances
+            const total = walletData.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
+            setTotalBalance(total);
+          }
         }
       } finally {
-        setIsLoadingAssets(false);
+        setIsLoadingBalance(false);
       }
     };
 
     fetchTransactions();
-    fetchAssets();
+    fetchBalance();
   }, [user]);
 
   const toggleBalanceVisibility = () => {
@@ -131,10 +129,11 @@ const Dashboard = () => {
             </div>
             <div className="text-center py-2">
               <h2 className="text-sm font-medium text-muted-foreground">Total Balance</h2>
-              <div className="text-3xl font-bold my-3">{formatBalance(totalBalance)}</div>
-              <div className="text-sm text-muted-foreground">
-                {assets && assets.length > 0 ? `${assets.length} Assets` : "No assets"}
-              </div>
+              {isLoadingBalance ? (
+                <div className="text-3xl font-bold my-3 animate-pulse">Loading...</div>
+              ) : (
+                <div className="text-3xl font-bold my-3">{formatBalance(totalBalance)}</div>
+              )}
             </div>
           </GlassCard>
         </motion.div>
@@ -244,77 +243,6 @@ const Dashboard = () => {
               </Button>
             </GlassCard>
           )}
-        </motion.div>
-
-        {/* My Assets */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.4 }}
-          className="mt-6"
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">My Assets</h2>
-          </div>
-
-          <div className="space-y-3">
-            {isLoadingAssets ? (
-              [...Array(2)].map((_, index) => (
-                <GlassCard 
-                  key={index} 
-                  variant="dark" 
-                  className="p-4 flex justify-between items-center animate-pulse"
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-700/50 mr-3"></div>
-                    <div>
-                      <div className="h-4 w-16 bg-gray-700/50 rounded"></div>
-                      <div className="h-3 w-24 bg-gray-700/30 rounded mt-2"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="h-4 w-16 bg-gray-700/50 rounded"></div>
-                    <div className="h-3 w-12 bg-gray-700/30 rounded mt-2 ml-auto"></div>
-                  </div>
-                </GlassCard>
-              ))
-            ) : assets && assets.length > 0 ? (
-              assets.map((asset, index) => (
-                <GlassCard 
-                  key={index} 
-                  variant="dark" 
-                  className="p-4 flex justify-between items-center"
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center mr-3">
-                      <Coins className="h-5 w-5 text-indigo-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{asset.symbol}</p>
-                      <p className="text-xs text-muted-foreground">{asset.name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{hideBalance ? "••••••" : `$${asset.value.toString()}`}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {hideBalance ? "••••••" : `${asset.balance.toString()} ${asset.symbol}`}
-                    </p>
-                  </div>
-                </GlassCard>
-              ))
-            ) : (
-              <GlassCard variant="dark" className="p-6 text-center">
-                <p className="text-muted-foreground">No assets yet</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-3 border-gold/20 text-foreground hover:bg-gold/10"
-                  onClick={() => navigate('/receive')}
-                >
-                  Receive Crypto
-                </Button>
-              </GlassCard>
-            )}
-          </div>
         </motion.div>
       </div>
     </div>
