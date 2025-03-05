@@ -18,6 +18,16 @@ interface CreateWalletFlowProps {
 
 type FlowStep = 'pin-setup' | 'verifying' | 'creating' | 'backup-option' | 'complete';
 
+// Define wallet interface based on our database structure
+interface Wallet {
+  id: string;
+  user_id: string;
+  name: string;
+  balance: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCancel }) => {
   const [step, setStep] = useState<FlowStep>('pin-setup');
   const { user } = useAuth();
@@ -62,7 +72,7 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       
       // Get the next wallet number
       const { data: existingWallets, error: fetchError } = await supabase
-        .from('wallets')
+        .from<Wallet>('wallets')
         .select('*')
         .eq('user_id', user.id);
         
@@ -72,7 +82,7 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       const walletName = `Wallet-${walletNumber.toString().padStart(2, '0')}`;
       
       const { error } = await supabase
-        .from('wallets')
+        .from<Wallet>('wallets')
         .insert([{ 
           user_id: user.id,
           name: walletName,
