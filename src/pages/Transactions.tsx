@@ -84,21 +84,21 @@ const Transactions = () => {
           </Button>
           <Button 
             variant={filter === "received" ? "default" : "outline"} 
-            size="sm"
+            size="icon"
             onClick={() => setFilter("received")}
             className={filter === "received" ? "bg-gold hover:bg-gold-dark text-primary-foreground" : ""}
+            title="Received"
           >
-            <Download className="h-4 w-4 mr-1" />
-            Received
+            <Download className="h-4 w-4" />
           </Button>
           <Button 
             variant={filter === "sent" ? "default" : "outline"} 
-            size="sm"
+            size="icon"
             onClick={() => setFilter("sent")}
             className={filter === "sent" ? "bg-gold hover:bg-gold-dark text-primary-foreground" : ""}
+            title="Sent"
           >
-            <Send className="h-4 w-4 mr-1" />
-            Sent
+            <Send className="h-4 w-4" />
           </Button>
         </div>
       </motion.header>
