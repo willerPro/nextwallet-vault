@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [totalBalance, setTotalBalance] = useState(0);
   const [balanceChange, setBalanceChange] = useState(0);
 
-  const { data: transactions = [], isLoadingTransactions } = useQuery({
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery({
     queryKey: ["transactions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,7 +39,7 @@ const Dashboard = () => {
     },
   });
 
-  const { data: assets = [], isLoadingAssets } = useQuery({
+  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
     queryKey: ["crypto-assets"],
     queryFn: async () => {
       // First get all crypto assets
