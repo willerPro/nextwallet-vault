@@ -14,7 +14,8 @@ import {
   Upload, 
   Plus, 
   Trash2, 
-  Shield 
+  Shield,
+  ArrowRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
