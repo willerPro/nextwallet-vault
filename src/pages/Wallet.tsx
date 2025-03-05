@@ -26,10 +26,11 @@ const Wallet = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('wallets')
+      // Use 'any' type assertion to bypass TypeScript checking for the table name
+      const { data, error } = await (supabase
+        .from('wallets' as any)
         .select('*')
-        .order('created_at', { ascending: false }) as { data: Wallet[] | null, error: any };
+        .order('created_at', { ascending: false })) as { data: Wallet[] | null, error: any };
       
       if (error) {
         console.error("Error fetching wallets:", error);
@@ -55,15 +56,16 @@ const Wallet = () => {
       const walletNumber = wallets ? wallets.length + 1 : 1;
       const walletName = `Wallet-${walletNumber.toString().padStart(2, '0')}`;
       
-      const { data, error } = await supabase
-        .from('wallets')
+      // Use 'any' type assertion to bypass TypeScript checking for the table name
+      const { data, error } = await (supabase
+        .from('wallets' as any)
         .insert([
           { 
             user_id: user.id,
             name: walletName,
           }
         ])
-        .select() as { data: Wallet[] | null, error: any };
+        .select()) as { data: Wallet[] | null, error: any };
       
       if (error) {
         console.error("Error creating wallet:", error);
