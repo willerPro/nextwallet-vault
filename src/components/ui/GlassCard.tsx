@@ -1,15 +1,12 @@
 
 import React from "react";
-import { motion, MotionProps } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement>, MotionProps {
+interface GlassCardProps extends HTMLMotionProps<"div"> {
   variant?: "default" | "gold" | "dark";
   children: React.ReactNode;
   className?: string;
-  initial?: any;
-  animate?: any;
-  transition?: any;
 }
 
 export function GlassCard({
