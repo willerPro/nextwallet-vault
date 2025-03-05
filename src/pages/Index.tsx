@@ -30,23 +30,6 @@ const Index = () => {
         </motion.div>
         
         <div className="flex-1 flex flex-col justify-center items-center pb-10">
-          <motion.div
-            className="text-center mb-10"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">
-              <span className="text-gradient-gold">Secure & Simple</span>
-            </h1>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Crypto Wallet
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              The next generation wallet for your digital assets. Safe, fast, and easy to use.
-            </p>
-          </motion.div>
-          
           <AuthForm />
         </div>
       </div>
