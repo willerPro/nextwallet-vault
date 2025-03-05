@@ -7,23 +7,45 @@ import { Label } from "@/components/ui/label";
 import { ChevronRight, Mail, LockKeyhole, UserPlus, Coins } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      if (isLogin) {
+        // Handle login
+        const { error, success } = await signIn(email, password);
+        if (error) {
+          toast.error(error.message || "Failed to sign in");
+        } else if (success) {
+          toast.success("Successfully logged in!");
+        }
+      } else {
+        // Handle signup
+        const userData = fullName ? { full_name: fullName } : undefined;
+        const { error, success } = await signUp(email, password, userData);
+        if (error) {
+          toast.error(error.message || "Failed to create account");
+        } else if (success) {
+          toast.success("Account created! Please check your email for verification.");
+          setIsLogin(true);
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An unexpected error occurred");
+    } finally {
       setIsLoading(false);
-      toast.success(isLogin ? "Successfully logged in!" : "Account created!");
-      navigate("/wallet-setup"); // Redirect to the new wallet setup page
-    }, 1500);
+    }
   };
 
   const toggleForm = () => {
@@ -82,7 +104,8 @@ export function AuthForm() {
                     id="name"
                     placeholder="John Doe"
                     className="pl-10 bg-background/40 border-muted focus:border-gold/50 h-10"
-                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                   />
                 </div>
               </div>
@@ -103,6 +126,8 @@ export function AuthForm() {
                   placeholder="name@example.com"
                   className="pl-10 bg-background/40 border-muted focus:border-gold/50 h-10"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
@@ -122,6 +147,8 @@ export function AuthForm() {
                   placeholder="••••••••"
                   className="pl-10 bg-background/40 border-muted focus:border-gold/50 h-10"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>

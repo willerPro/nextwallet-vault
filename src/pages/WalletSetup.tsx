@@ -5,13 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Wallet, Plus, Key } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const WalletSetup = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    
+    // Redirect to home if not authenticated
+    if (!loading && !user) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
 
   const handleCreateWallet = () => {
     // Will be implemented later
@@ -22,6 +29,13 @@ const WalletSetup = () => {
     // Will be implemented later
     navigate("/wallet");
   };
+
+  // Show loading state or nothing if not authenticated
+  if (loading || !user) {
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-gold">Loading...</div>
+    </div>;
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col relative overflow-hidden">

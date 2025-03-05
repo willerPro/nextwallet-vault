@@ -13,9 +13,6 @@ export function GlassCard({
   variant = "default",
   children,
   className,
-  initial,
-  animate,
-  transition,
   ...props
 }: GlassCardProps) {
   const variants = {
@@ -27,9 +24,6 @@ export function GlassCard({
   return (
     <motion.div
       className={cn(variants[variant], "rounded-2xl p-5", className)}
-      initial={initial}
-      animate={animate}
-      transition={transition}
       {...props}
     >
       {children}
