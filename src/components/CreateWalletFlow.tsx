@@ -18,7 +18,7 @@ interface CreateWalletFlowProps {
 
 type FlowStep = 'pin-setup' | 'verifying' | 'creating' | 'backup-option' | 'complete';
 
-// Define wallet interface based on our database structure
+// Define wallet interface for TypeScript
 interface Wallet {
   id: string;
   user_id: string;
@@ -72,7 +72,7 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       
       // Get the next wallet number
       const { data: existingWallets, error: fetchError } = await supabase
-        .from<Wallet>('wallets')
+        .from('wallets')
         .select('*')
         .eq('user_id', user.id);
         
@@ -82,10 +82,11 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       const walletName = `Wallet-${walletNumber.toString().padStart(2, '0')}`;
       
       const { error } = await supabase
-        .from<Wallet>('wallets')
+        .from('wallets')
         .insert([{ 
           user_id: user.id,
           name: walletName,
+          balance: 0 // Set initial balance to 0
         }]);
       
       if (error) throw error;

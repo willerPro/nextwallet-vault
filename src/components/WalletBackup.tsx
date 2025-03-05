@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Download, Shield, Check, ArrowRight, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import SeedPhraseBackup from "./SeedPhraseBackup";
 
 interface WalletBackupProps {
   onComplete: () => void;
@@ -13,7 +14,7 @@ interface WalletBackupProps {
 }
 
 const WalletBackup: React.FC<WalletBackupProps> = ({ onComplete, onSkip }) => {
-  const [step, setStep] = useState<'intro' | 'warnings' | 'complete'>('intro');
+  const [step, setStep] = useState<'intro' | 'warnings' | 'seed-phrase' | 'complete'>('intro');
   const [warningChecks, setWarningChecks] = useState({
     lossOfFunds: false,
     userResponsibility: false,
@@ -35,14 +36,18 @@ const WalletBackup: React.FC<WalletBackupProps> = ({ onComplete, onSkip }) => {
     });
   };
 
+  const proceedToSeedPhrase = () => {
+    setStep('seed-phrase');
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <GlassCard variant="dark" className="p-6">
-        {step === 'intro' && (
+      {step === 'intro' && (
+        <GlassCard variant="dark" className="p-6">
           <div className="flex flex-col items-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center text-gold">
               <Download className="w-8 h-8" />
@@ -72,9 +77,11 @@ const WalletBackup: React.FC<WalletBackupProps> = ({ onComplete, onSkip }) => {
               </Button>
             </div>
           </div>
-        )}
+        </GlassCard>
+      )}
 
-        {step === 'warnings' && (
+      {step === 'warnings' && (
+        <GlassCard variant="dark" className="p-6">
           <div className="flex flex-col space-y-5">
             <div className="flex items-center justify-center">
               <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
@@ -146,7 +153,7 @@ const WalletBackup: React.FC<WalletBackupProps> = ({ onComplete, onSkip }) => {
               
               <Button
                 className="flex-1 bg-gradient-to-r from-gold-dark via-gold to-gold-light hover:shadow-lg hover:shadow-gold/20"
-                onClick={handleBackupComplete}
+                onClick={proceedToSeedPhrase}
                 disabled={!allWarningsChecked}
               >
                 <ArrowRight className="w-4 h-4 mr-2" />
@@ -154,8 +161,15 @@ const WalletBackup: React.FC<WalletBackupProps> = ({ onComplete, onSkip }) => {
               </Button>
             </div>
           </div>
-        )}
-      </GlassCard>
+        </GlassCard>
+      )}
+
+      {step === 'seed-phrase' && (
+        <SeedPhraseBackup
+          onComplete={handleBackupComplete}
+          onCancel={onSkip}
+        />
+      )}
     </motion.div>
   );
 };
