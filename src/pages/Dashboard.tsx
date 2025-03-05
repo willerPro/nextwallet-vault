@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -38,8 +39,8 @@ const Dashboard = () => {
       
       return data.map(tx => ({
         ...tx,
-        amount: String(tx.amount),  // Convert number to string
-        value_usd: String(tx.value_usd),  // Convert number to string
+        amount: tx.amount.toString(),  // Convert number to string
+        value_usd: tx.value_usd.toString(),  // Convert number to string
       })) as Transaction[];
     },
   });

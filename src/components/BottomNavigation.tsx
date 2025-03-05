@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   Home,
   Wallet,
-  BarChart3,
+  Settings,
   User,
   LucideIcon,
 } from "lucide-react";
@@ -29,9 +29,9 @@ const navItems: NavItem[] = [
     icon: Wallet,
   },
   {
-    name: "Market",
-    path: "/market",
-    icon: BarChart3,
+    name: "Settings",
+    path: "/settings",
+    icon: Settings,
   },
   {
     name: "Profile",

@@ -12,8 +12,8 @@ import { AuthProvider } from "@/context/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Wallet from "./pages/Wallet";
-import Market from "./pages/Market";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import WalletSetup from "./pages/WalletSetup";
 import Transactions from "./pages/Transactions";
@@ -37,7 +37,7 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/wallet" element={<Wallet />} />
                 <Route path="/wallet-setup" element={<WalletSetup />} />
-                <Route path="/market" element={<Market />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/send" element={<Send />} />
