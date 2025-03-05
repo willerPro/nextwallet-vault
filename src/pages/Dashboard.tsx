@@ -122,6 +122,14 @@ const Dashboard = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  const handleSendClick = () => {
+    navigate('/send');
+  };
+
+  const handleReceiveClick = () => {
+    navigate('/receive');
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       {/* Header */}
@@ -154,11 +162,20 @@ const Dashboard = () => {
             </div>
 
             <div className="flex justify-center gap-2 mt-6">
-              <Button size="sm" className="bg-gold hover:bg-gold-dark text-primary-foreground">
+              <Button 
+                size="sm" 
+                className="bg-gold hover:bg-gold-dark text-primary-foreground"
+                onClick={handleSendClick}
+              >
                 <Send className="h-4 w-4 mr-2" />
                 Send
               </Button>
-              <Button size="sm" variant="outline" className="border-gold/20 text-foreground hover:bg-gold/10">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="border-gold/20 text-foreground hover:bg-gold/10"
+                onClick={handleReceiveClick}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Receive
               </Button>
@@ -168,32 +185,6 @@ const Dashboard = () => {
               </Button>
             </div>
           </GlassCard>
-        </motion.div>
-
-        {/* Assets */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-        >
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-bold">Your Assets</h2>
-            <Button variant="link" className="text-gold p-0 h-auto">
-              View all
-            </Button>
-          </div>
-          
-          {isLoadingAssets ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((_, index) => (
-                <GlassCard key={index} variant="dark" className="h-16 animate-pulse">
-                  <div></div> {/* Empty div as child */}
-                </GlassCard>
-              ))}
-            </div>
-          ) : (
-            <CryptoAssetsList assets={assets} />
-          )}
         </motion.div>
 
         {/* Recent transactions */}

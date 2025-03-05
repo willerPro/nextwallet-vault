@@ -17,6 +17,9 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import WalletSetup from "./pages/WalletSetup";
 import Transactions from "./pages/Transactions";
+import Send from "./pages/Send";
+import SendDetails from "./pages/SendDetails";
+import Receive from "./pages/Receive";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +40,9 @@ const App = () => {
                 <Route path="/market" element={<Market />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/transactions" element={<Transactions />} />
+                <Route path="/send" element={<Send />} />
+                <Route path="/send/:id" element={<SendDetails />} />
+                <Route path="/receive" element={<Receive />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AnimatePresence>
