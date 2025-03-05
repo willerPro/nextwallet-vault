@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -9,16 +9,203 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+
+// Type for user profile
+type UserProfile = {
+  full_name: string;
+  email: string;
+  phone_number: string;
+  country: string;
+  city: string;
+};
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
+    fetchProfile();
   }, []);
   
-  const handleLogout = () => {
-    navigate("/");
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // First try to get from user_profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileData) {
+        setProfile({
+          full_name: profileData.full_name || 'User',
+          email: user.email || '',
+          phone_number: profileData.phone_number || '',
+          country: profileData.country || '',
+          city: profileData.city || ''
+        });
+      } else {
+        // If no profile, just use the auth user data
+        setProfile({
+          full_name: user.user_metadata?.full_name || 'User',
+          email: user.email || '',
+          phone_number: '',
+          country: '',
+          city: ''
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to load profile information");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Failed to sign out");
+    }
+  };
+
+  // Get initials for avatar
+  const getInitials = () => {
+    if (!profile?.full_name) return 'U';
+    return profile.full_name
+      .split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  // Edit Profile Form
+  const EditProfileForm = () => {
+    const form = useForm({
+      defaultValues: {
+        full_name: profile?.full_name || '',
+        phone_number: profile?.phone_number || '',
+        country: profile?.country || '',
+        city: profile?.city || '',
+      }
+    });
+
+    const onSubmit = async (values: any) => {
+      if (!user) return;
+      
+      try {
+        const { error } = await supabase
+          .from('user_profiles')
+          .upsert({ 
+            id: user.id,
+            full_name: values.full_name,
+            phone_number: values.phone_number,
+            country: values.country,
+            city: values.city
+          });
+        
+        if (error) throw error;
+        
+        // Update local state
+        setProfile(prev => ({
+          ...prev!,
+          full_name: values.full_name,
+          phone_number: values.phone_number,
+          country: values.country,
+          city: values.city
+        }));
+        
+        toast.success("Profile updated successfully");
+        setOpen(false);
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        toast.error("Failed to update profile");
+      }
+    };
+
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="full_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Full Name" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="phone_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input placeholder="Phone Number" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Country</FormLabel>
+                <FormControl>
+                  <Input placeholder="Country" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                  <Input placeholder="City" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Form>
+    );
   };
 
   return (
@@ -46,17 +233,57 @@ const Profile = () => {
         >
           <GlassCard variant="gold" className="flex items-center">
             <Avatar className="h-16 w-16 border-2 border-gold">
-              <AvatarFallback className="bg-secondary text-foreground text-xl font-semibold">JD</AvatarFallback>
+              <AvatarFallback className="bg-secondary text-foreground text-xl font-semibold">
+                {loading ? '...' : getInitials()}
+              </AvatarFallback>
             </Avatar>
             <div className="ml-4">
-              <h2 className="text-xl font-bold">John Doe</h2>
-              <p className="text-muted-foreground">john.doe@example.com</p>
+              <h2 className="text-xl font-bold">{loading ? 'Loading...' : profile?.full_name}</h2>
+              <p className="text-muted-foreground">{loading ? 'Loading...' : profile?.email}</p>
             </div>
-            <Button variant="outline" size="sm" className="ml-auto border-gold/20 text-foreground hover:bg-gold/10">
-              Edit
-            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-auto border-gold/20 text-foreground hover:bg-gold/10">
+                  Edit
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Profile</DialogTitle>
+                </DialogHeader>
+                <EditProfileForm />
+              </DialogContent>
+            </Dialog>
           </GlassCard>
         </motion.div>
+
+        {/* Contact Info */}
+        {profile && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
+          >
+            <h2 className="text-lg font-bold mb-3 px-1">Contact Information</h2>
+            
+            <GlassCard variant="dark" className="divide-y divide-border/30 space-y-2">
+              <div className="py-2">
+                <p className="text-sm text-muted-foreground">Phone</p>
+                <p>{profile.phone_number || 'Not set'}</p>
+              </div>
+              
+              <div className="py-2">
+                <p className="text-sm text-muted-foreground">Country</p>
+                <p>{profile.country || 'Not set'}</p>
+              </div>
+              
+              <div className="py-2">
+                <p className="text-sm text-muted-foreground">City</p>
+                <p>{profile.city || 'Not set'}</p>
+              </div>
+            </GlassCard>
+          </motion.div>
+        )}
 
         {/* Settings */}
         <motion.div
