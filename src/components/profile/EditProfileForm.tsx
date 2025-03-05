@@ -32,19 +32,33 @@ const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps)
     if (!user) return;
     
     try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .upsert({ 
-          id: user.id,
-          full_name: values.full_name,
-          phone_number: values.phone_number,
-          country: values.country,
-          city: values.city,
-          gender: values.gender,
-          date_of_birth: values.date_of_birth
-        });
+      // Try with a different approach to avoid RLS issues
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        p_full_name: values.full_name,
+        p_phone_number: values.phone_number,
+        p_country: values.country,
+        p_city: values.city,
+        p_gender: values.gender,
+        p_date_of_birth: values.date_of_birth
+      });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating profile via RPC:", error);
+        
+        // Fallback to direct update if RPC fails
+        const { error: directError } = await supabase.auth.updateUser({
+          data: {
+            full_name: values.full_name,
+            phone_number: values.phone_number,
+            country: values.country,
+            city: values.city,
+            gender: values.gender,
+            date_of_birth: values.date_of_birth
+          }
+        });
+        
+        if (directError) throw directError;
+      }
       
       // Update local state
       setProfile(prev => ({

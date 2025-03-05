@@ -14,34 +14,42 @@ export const useProfile = (user: User | null) => {
     
     setLoading(true);
     try {
-      // First try to get from user_profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (profileData) {
-        setProfile({
-          full_name: profileData.full_name || 'User',
-          email: user.email || '',
-          phone_number: profileData.phone_number || '',
-          country: profileData.country || '',
-          city: profileData.city || '',
-          gender: profileData.gender || 'male',
-          date_of_birth: profileData.date_of_birth || '2000-01-01'
-        });
-      } else {
-        // If no profile, just use the auth user data
-        setProfile({
-          full_name: user.user_metadata?.full_name || 'User',
-          email: user.email || '',
-          phone_number: '',
-          country: '',
-          city: '',
-          gender: 'male',
-          date_of_birth: '2000-01-01'
-        });
+      // Try to get user metadata first
+      const userData = {
+        full_name: user.user_metadata?.full_name || 'User',
+        email: user.email || '',
+        phone_number: user.user_metadata?.phone_number || '',
+        country: user.user_metadata?.country || '',
+        city: user.user_metadata?.city || '',
+        gender: user.user_metadata?.gender || 'male',
+        date_of_birth: user.user_metadata?.date_of_birth || '2000-01-01'
+      };
+
+      // Then try to get from user_profiles table as a fallback
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (profileData) {
+          setProfile({
+            full_name: profileData.full_name || userData.full_name,
+            email: user.email || '',
+            phone_number: profileData.phone_number || userData.phone_number,
+            country: profileData.country || userData.country,
+            city: profileData.city || userData.city,
+            gender: profileData.gender || userData.gender,
+            date_of_birth: profileData.date_of_birth || userData.date_of_birth
+          });
+        } else {
+          setProfile(userData);
+        }
+      } catch (error) {
+        console.error("Error fetching profile from database:", error);
+        // Fallback to user metadata
+        setProfile(userData);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
