@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { WalletIcon, Plus, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,7 +19,6 @@ const Wallet = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [totalBalance, setTotalBalance] = useState(0);
 
   // Fetch user wallets
   const { data: wallets, isLoading: isLoadingWallets } = useQuery({
@@ -31,7 +29,7 @@ const Wallet = () => {
       const { data, error } = await supabase
         .from('wallets')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: Wallet[] | null, error: any };
       
       if (error) {
         console.error("Error fetching wallets:", error);
@@ -43,7 +41,7 @@ const Wallet = () => {
         return [];
       }
       
-      return data as Wallet[];
+      return data || [];
     },
     enabled: !!user && !loading,
   });
@@ -65,14 +63,14 @@ const Wallet = () => {
             name: walletName,
           }
         ])
-        .select();
+        .select() as { data: Wallet[] | null, error: any };
       
       if (error) {
         console.error("Error creating wallet:", error);
         throw new Error("Failed to create wallet");
       }
       
-      return data[0];
+      return data?.[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallets'] });
