@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -99,8 +98,8 @@ const Dashboard = () => {
   useEffect(() => {
     if (assets && assets.length > 0) {
       const total = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
-      setTotalBalance(total);
-      
+      setTotalBalance(total.toString());  // Convert number to string
+
       const totalValue = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
       const weightedChange = assets.reduce(
         (sum, asset) => sum + (asset.balance * asset.price * asset.priceChange) / totalValue, 

@@ -1,5 +1,4 @@
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { 
@@ -19,17 +18,39 @@ import {
   ChevronRight 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { ThemeSelectSheet } from "@/components/ThemeSelectSheet";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const [isThemeSheetOpen, setIsThemeSheetOpen] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const handleClearCache = async () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      document.cookie.split(";").forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      });
+      toast.success("Cache cleared successfully");
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      toast.error("Failed to clear cache");
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      {/* Header */}
       <motion.header 
         className="p-4 flex items-center"
         initial={{ y: -20, opacity: 0 }}
@@ -45,9 +66,9 @@ const Settings = () => {
         <h1 className="text-xl font-bold">Settings</h1>
       </motion.header>
 
-      {/* Main content */}
+      <ThemeSelectSheet open={isThemeSheetOpen} onOpenChange={setIsThemeSheetOpen} />
+
       <div className="flex-1 px-4 space-y-6">
-        {/* Network Settings */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -78,7 +99,10 @@ const Settings = () => {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
             
-            <div className="py-3 flex items-center justify-between">
+            <div 
+              className="py-3 flex items-center justify-between cursor-pointer"
+              onClick={handleClearCache}
+            >
               <div className="flex items-center">
                 <Trash2 className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Clear Cache</div>
@@ -88,14 +112,16 @@ const Settings = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Preferences */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.4 }}
         >
           <GlassCard variant="dark" className="divide-y divide-border/30">
-            <div className="py-3 flex items-center justify-between">
+            <div 
+              className="py-3 flex items-center justify-between cursor-pointer"
+              onClick={() => setIsThemeSheetOpen(true)}
+            >
               <div className="flex items-center">
                 <Moon className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Appearance</div>
@@ -155,7 +181,6 @@ const Settings = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Support */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
