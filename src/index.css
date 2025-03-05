@@ -47,4 +47,8 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-gold-dark via-gold to-gold-light bg-clip-text text-transparent;
+  }
 }
