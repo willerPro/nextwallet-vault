@@ -107,8 +107,8 @@ const Dashboard = () => {
       
       return data.map(tx => ({
         ...tx,
-        amount: tx.amount?.toString() || "0",  // Convert number to string with null check
-        value_usd: tx.value_usd?.toString() || "0",  // Convert number to string with null check
+        amount: String(tx.amount || 0),
+        value_usd: String(tx.value_usd || 0),
       })) as Transaction[];
     },
   });
@@ -186,7 +186,6 @@ const Dashboard = () => {
   }, []);
 
   const handleSendClick = () => {
-    // Check if user has wallets
     if (wallets.length === 0) {
       setShowNoWalletWarning(true);
     } else {
@@ -195,7 +194,6 @@ const Dashboard = () => {
   };
 
   const handleReceiveClick = () => {
-    // Check if user has wallets
     if (wallets.length === 0) {
       setShowNoWalletWarning(true);
     } else {
@@ -294,7 +292,6 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
-      {/* No Wallet Warning Dialog */}
       <AlertDialog open={showNoWalletWarning} onOpenChange={setShowNoWalletWarning}>
         <AlertDialogContent className="bg-background border border-border">
           <AlertDialogHeader>

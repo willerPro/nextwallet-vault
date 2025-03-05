@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -23,6 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { Pen } from "lucide-react";
+import { ExportKeySheet } from "@/components/ExportKeySheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,8 +49,9 @@ const WalletDetails = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [walletName, setWalletName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [exportKeyOpen, setExportKeyOpen] = useState(false);
+  const [exportKeyType, setExportKeyType] = useState<"public" | "private">("public");
 
-  // Fetch wallet data
   const { data: wallet, isLoading: isLoadingWallet } = useQuery({
     queryKey: ['wallet-details', id],
     queryFn: async () => {
@@ -135,7 +136,11 @@ const WalletDetails = () => {
     }
   };
 
-  // Generate a security suffix from the wallet id
+  const handleExportKey = (type: "public" | "private") => {
+    setExportKeyType(type);
+    setExportKeyOpen(true);
+  };
+
   const securitySuffix = id ? id.substring(0, 3).toUpperCase() : "UTV";
 
   if (isLoadingWallet) {
@@ -148,7 +153,6 @@ const WalletDetails = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      {/* Header */}
       <motion.header 
         className="p-4 flex items-center"
         initial={{ y: -20, opacity: 0 }}
@@ -166,9 +170,7 @@ const WalletDetails = () => {
         <h1 className="text-xl font-bold">Wallet Details</h1>
       </motion.header>
 
-      {/* Main content */}
       <div className="flex-1 px-4 space-y-6">
-        {/* Wallet icon and name */}
         <motion.div
           className="flex flex-col items-center justify-center py-6"
           initial={{ y: 20, opacity: 0 }}
@@ -206,7 +208,6 @@ const WalletDetails = () => {
           )}
         </motion.div>
 
-        {/* Wallet info */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -235,7 +236,6 @@ const WalletDetails = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Actions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -252,7 +252,10 @@ const WalletDetails = () => {
             
             <Separator />
             
-            <div className="flex justify-between items-center">
+            <div 
+              className="flex justify-between items-center cursor-pointer"
+              onClick={() => handleExportKey("public")}
+            >
               <div className="flex items-center">
                 <span>Export Public Key</span>
                 <Button variant="ghost" size="icon" className="h-4 w-4 text-muted-foreground ml-1">
@@ -264,15 +267,11 @@ const WalletDetails = () => {
             
             <Separator />
             
-            <div className="flex justify-between items-center">
+            <div 
+              className="flex justify-between items-center cursor-pointer"
+              onClick={() => handleExportKey("private")}
+            >
               <span>Export Private Key</span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-            
-            <Separator />
-            
-            <div className="flex justify-between items-center">
-              <span>Create Account</span>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </div>
             
@@ -285,7 +284,6 @@ const WalletDetails = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Coins */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -297,7 +295,6 @@ const WalletDetails = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Remove wallet button */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -312,7 +309,6 @@ const WalletDetails = () => {
         </motion.div>
       </div>
 
-      {/* Confirm delete dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="bg-background border border-border">
           <AlertDialogHeader>
@@ -332,6 +328,13 @@ const WalletDetails = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExportKeySheet
+        open={exportKeyOpen}
+        onOpenChange={setExportKeyOpen}
+        keyType={exportKeyType}
+        keyValue=""
+      />
     </div>
   );
 };
