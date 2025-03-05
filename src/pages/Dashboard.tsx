@@ -10,12 +10,50 @@ import { TransactionList, Transaction } from "@/components/TransactionList";
 import { CryptoAssetsList, CryptoAsset } from "@/components/CryptoAssetsList";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [totalBalance, setTotalBalance] = useState(0);
+  const { user } = useAuth();
+  const [totalBalance, setTotalBalance] = useState("0");
   const [balanceChange, setBalanceChange] = useState(0);
+
+  const { data: userBalance, isLoading: isLoadingBalance } = useQuery({
+    queryKey: ["user-balance"],
+    queryFn: async () => {
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from("user_balances")
+        .select("total_balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error fetching user balance:", error);
+        return null;
+      }
+      
+      if (!data) {
+        const { data: newData, error: insertError } = await supabase
+          .from("user_balances")
+          .insert({ user_id: user.id, total_balance: 0 })
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error("Error creating user balance:", insertError);
+          return null;
+        }
+        
+        return newData.total_balance.toString();
+      }
+      
+      return data.total_balance.toString();
+    },
+    enabled: !!user,
+  });
 
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery({
     queryKey: ["transactions"],
@@ -96,10 +134,13 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (assets && assets.length > 0) {
-      const total = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
-      setTotalBalance(total.toString());  // Convert number to string
+    if (userBalance !== undefined && userBalance !== null) {
+      setTotalBalance(userBalance);
+    }
+  }, [userBalance]);
 
+  useEffect(() => {
+    if (assets && assets.length > 0) {
       const totalValue = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
       const weightedChange = assets.reduce(
         (sum, asset) => sum + (asset.balance * asset.price * asset.priceChange) / totalValue, 
@@ -143,7 +184,9 @@ const Dashboard = () => {
         >
           <GlassCard variant="gold" className="text-center">
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Total Balance</h2>
-            <div className="text-3xl font-bold mb-1">${totalBalance.toLocaleString()}</div>
+            <div className="text-3xl font-bold mb-1">
+              ${isLoadingBalance ? "..." : Number(totalBalance).toLocaleString()}
+            </div>
             <div className="text-sm text-green-400 flex items-center justify-center">
               <ArrowUpRight className="h-4 w-4 mr-1" />
               <span>+{balanceChange.toFixed(2)}% today</span>
