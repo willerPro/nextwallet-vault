@@ -56,7 +56,7 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
     setLoading(true);
     try {
       const { error: dbError } = await supabase
-        .from('pin_auth' as any)
+        .from('pin_auth')
         .insert([{ user_id: user.id, pin }]);
 
       if (dbError) throw dbError;
@@ -83,14 +83,15 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
     setLoading(true);
     try {
       const { data, error: dbError } = await supabase
-        .from('pin_auth' as any)
+        .from('pin_auth')
         .select('pin')
         .eq('user_id', user.id)
         .single();
 
       if (dbError) throw dbError;
       
-      if (data.pin === pin) {
+      // Fix: Properly check if data exists and has pin property
+      if (data && data.pin === pin) {
         toast.success("PIN verified successfully");
         onSuccess();
       } else {
