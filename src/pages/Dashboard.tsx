@@ -10,9 +10,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { TransactionList, Transaction } from "@/components/TransactionList";
 import { CryptoAssetsList, CryptoAsset } from "@/components/CryptoAssetsList";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [totalBalance, setTotalBalance] = useState(0);
   const [balanceChange, setBalanceChange] = useState(0);
 
@@ -74,12 +76,12 @@ const Dashboard = () => {
       if (!holdings || holdings.length === 0) {
         // Return top assets with zero balance for demo
         return cryptoAssets.slice(0, 4).map(asset => ({
-          id: asset.id,
+          id: String(asset.id),  // Convert to string
           symbol: asset.symbol,
           name: asset.name,
           balance: Math.random() * 0.5, // Small random balance for demo
-          price: parseFloat(asset.current_price),
-          priceChange: parseFloat(asset.price_change_24h),
+          price: parseFloat(String(asset.current_price)),
+          priceChange: parseFloat(String(asset.price_change_24h)),
           logo_url: asset.logo_url
         }));
       }
@@ -202,7 +204,11 @@ const Dashboard = () => {
         >
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-lg font-bold">Recent Transactions</h2>
-            <Button variant="link" className="text-gold p-0 h-auto">
+            <Button 
+              variant="link" 
+              className="text-gold p-0 h-auto"
+              onClick={() => navigate('/transactions')}
+            >
               View all
             </Button>
           </div>

@@ -16,6 +16,7 @@ import Market from "./pages/Market";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import WalletSetup from "./pages/WalletSetup";
+import Transactions from "./pages/Transactions";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => {
                 <Route path="/wallet-setup" element={<WalletSetup />} />
                 <Route path="/market" element={<Market />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/transactions" element={<Transactions />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AnimatePresence>
