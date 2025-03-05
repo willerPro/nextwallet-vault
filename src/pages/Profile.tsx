@@ -24,6 +24,8 @@ type UserProfile = {
   phone_number: string;
   country: string;
   city: string;
+  gender: string;
+  date_of_birth: string;
 };
 
 const Profile = () => {
@@ -56,7 +58,9 @@ const Profile = () => {
           email: user.email || '',
           phone_number: profileData.phone_number || '',
           country: profileData.country || '',
-          city: profileData.city || ''
+          city: profileData.city || '',
+          gender: profileData.gender || 'male',
+          date_of_birth: profileData.date_of_birth || '2000-01-01'
         });
       } else {
         // If no profile, just use the auth user data
@@ -65,7 +69,9 @@ const Profile = () => {
           email: user.email || '',
           phone_number: '',
           country: '',
-          city: ''
+          city: '',
+          gender: 'male',
+          date_of_birth: '2000-01-01'
         });
       }
     } catch (error) {
@@ -104,6 +110,8 @@ const Profile = () => {
         phone_number: profile?.phone_number || '',
         country: profile?.country || '',
         city: profile?.city || '',
+        gender: profile?.gender || 'male',
+        date_of_birth: profile?.date_of_birth || '2000-01-01'
       }
     });
 
@@ -118,7 +126,9 @@ const Profile = () => {
             full_name: values.full_name,
             phone_number: values.phone_number,
             country: values.country,
-            city: values.city
+            city: values.city,
+            gender: values.gender,
+            date_of_birth: values.date_of_birth
           });
         
         if (error) throw error;
@@ -129,7 +139,9 @@ const Profile = () => {
           full_name: values.full_name,
           phone_number: values.phone_number,
           country: values.country,
-          city: values.city
+          city: values.city,
+          gender: values.gender,
+          date_of_birth: values.date_of_birth
         }));
         
         toast.success("Profile updated successfully");
@@ -190,6 +202,39 @@ const Profile = () => {
                 <FormLabel>City</FormLabel>
                 <FormControl>
                   <Input placeholder="City" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="gender"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Gender</FormLabel>
+                <FormControl>
+                  <select 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                    {...field}
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="date_of_birth"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date of Birth</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
                 </FormControl>
               </FormItem>
             )}
