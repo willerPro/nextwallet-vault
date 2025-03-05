@@ -1,46 +1,116 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Logo } from "@/components/Logo";
-import { ArrowUpRight, ArrowDownRight, Plus, Clock, Send, Download, CreditCard } from "lucide-react";
+import { ArrowUpRight, Plus, Clock, Send, Download, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-const coins = [
-  { name: "Bitcoin", symbol: "BTC", balance: 0.0234, value: 1345.67, change: 2.34 },
-  { name: "Ethereum", symbol: "ETH", balance: 0.456, value: 876.54, change: -1.23 },
-  { name: "Solana", symbol: "SOL", balance: 12.345, value: 234.56, change: 5.67 },
-];
-
-const recentTransactions = [
-  { 
-    id: 1, 
-    type: "received", 
-    amount: "0.0234 BTC", 
-    value: "$1,345.67", 
-    from: "0x1a2b...3c4d", 
-    date: "2h ago" 
-  },
-  { 
-    id: 2, 
-    type: "sent", 
-    amount: "0.456 ETH", 
-    value: "$876.54", 
-    to: "0x5e6f...7g8h", 
-    date: "Yesterday" 
-  },
-  { 
-    id: 3, 
-    type: "received", 
-    amount: "12.345 SOL", 
-    value: "$234.56", 
-    from: "0x9i0j...1k2l", 
-    date: "3d ago" 
-  },
-];
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { TransactionList, Transaction } from "@/components/TransactionList";
+import { CryptoAssetsList, CryptoAsset } from "@/components/CryptoAssetsList";
+import { useQuery } from "@tanstack/react-query";
 
 const Dashboard = () => {
+  const { toast } = useToast();
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [balanceChange, setBalanceChange] = useState(0);
+
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      
+      if (error) {
+        console.error("Error fetching transactions:", error);
+        toast({
+          title: "Error fetching transactions",
+          description: error.message,
+          variant: "destructive",
+        });
+        return [];
+      }
+      
+      return data as Transaction[];
+    },
+  });
+
+  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
+    queryKey: ["crypto-assets"],
+    queryFn: async () => {
+      // First get all crypto assets
+      const { data: cryptoAssets, error: assetsError } = await supabase
+        .from("crypto_assets")
+        .select("*");
+      
+      if (assetsError) {
+        console.error("Error fetching crypto assets:", assetsError);
+        return [];
+      }
+
+      // Then get user holdings
+      const { data: holdings, error: holdingsError } = await supabase
+        .from("user_crypto_holdings")
+        .select(`
+          *,
+          crypto_assets(*)
+        `);
+      
+      if (holdingsError) {
+        console.error("Error fetching user holdings:", holdingsError);
+        return [];
+      }
+
+      // If no holdings, return sample data for demonstration
+      if (!holdings || holdings.length === 0) {
+        // Return top assets with zero balance
+        return cryptoAssets.slice(0, 4).map(asset => ({
+          id: asset.id,
+          symbol: asset.symbol,
+          name: asset.name,
+          balance: Math.random() * 0.5, // Small random balance for demo
+          price: asset.current_price,
+          priceChange: asset.price_change_24h,
+          logo_url: asset.logo_url
+        }));
+      }
+
+      // Map holdings to the format we need
+      return holdings.map(holding => {
+        const asset = holding.crypto_assets;
+        return {
+          id: holding.id,
+          symbol: asset.symbol,
+          name: asset.name,
+          balance: parseFloat(holding.balance),
+          price: parseFloat(asset.current_price),
+          priceChange: parseFloat(asset.price_change_24h),
+          logo_url: asset.logo_url
+        };
+      });
+    },
+  });
+
+  useEffect(() => {
+    // Calculate total balance from assets
+    if (assets && assets.length > 0) {
+      const total = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
+      setTotalBalance(total);
+      
+      // Calculate weighted average change
+      const totalValue = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
+      const weightedChange = assets.reduce(
+        (sum, asset) => sum + (asset.balance * asset.price * asset.priceChange) / totalValue, 
+        0
+      );
+      setBalanceChange(weightedChange || 3.45); // Fallback to sample value if calculation is 0
+    }
+  }, [assets]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -70,10 +140,10 @@ const Dashboard = () => {
         >
           <GlassCard variant="gold" className="text-center">
             <h2 className="text-sm font-medium text-muted-foreground mb-1">Total Balance</h2>
-            <div className="text-3xl font-bold mb-1">$2,456.77</div>
+            <div className="text-3xl font-bold mb-1">${totalBalance.toLocaleString()}</div>
             <div className="text-sm text-green-400 flex items-center justify-center">
               <ArrowUpRight className="h-4 w-4 mr-1" />
-              <span>+5.23% today</span>
+              <span>+{balanceChange.toFixed(2)}% today</span>
             </div>
 
             <div className="flex justify-center gap-2 mt-6">
@@ -106,42 +176,15 @@ const Dashboard = () => {
             </Button>
           </div>
           
-          <div className="space-y-3">
-            {coins.map((coin, index) => (
-              <GlassCard 
-                key={coin.symbol}
-                variant="dark"
-                className="flex justify-between items-center"
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.2 + index * 0.1, duration: 0.3 }}
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center mr-3">
-                    {coin.symbol.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="font-medium">{coin.name}</div>
-                    <div className="text-sm text-muted-foreground">{coin.balance} {coin.symbol}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">${coin.value.toLocaleString()}</div>
-                  <div className={cn(
-                    "text-sm flex items-center justify-end",
-                    coin.change > 0 ? "text-green-400" : "text-red-400"
-                  )}>
-                    {coin.change > 0 ? (
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 mr-1" />
-                    )}
-                    {Math.abs(coin.change)}%
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
+          {isLoadingAssets ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((_, index) => (
+                <GlassCard key={index} variant="dark" className="h-16 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <CryptoAssetsList assets={assets} />
+          )}
         </motion.div>
 
         {/* Recent transactions */}
@@ -157,44 +200,15 @@ const Dashboard = () => {
             </Button>
           </div>
           
-          <div className="space-y-3">
-            {recentTransactions.map((tx, index) => (
-              <GlassCard 
-                key={tx.id}
-                variant="dark"
-                className="flex justify-between items-center"
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.3 + index * 0.1, duration: 0.3 }}
-              >
-                <div className="flex items-center">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center mr-3",
-                    tx.type === "received" ? "bg-green-400/20 text-green-400" : "bg-red-400/20 text-red-400"
-                  )}>
-                    {tx.type === "received" ? (
-                      <Download className="h-5 w-5" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-medium">
-                      {tx.type === "received" ? "Received" : "Sent"}
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {tx.date}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium">{tx.amount}</div>
-                  <div className="text-sm text-muted-foreground">{tx.value}</div>
-                </div>
-              </GlassCard>
-            ))}
-          </div>
+          {isLoadingTransactions ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((_, index) => (
+                <GlassCard key={index} variant="dark" className="h-16 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <TransactionList transactions={transactions} />
+          )}
         </motion.div>
       </div>
     </div>

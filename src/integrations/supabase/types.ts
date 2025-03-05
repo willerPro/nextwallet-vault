@@ -253,6 +253,42 @@ export type Database = {
         }
         Relationships: []
       }
+      crypto_assets: {
+        Row: {
+          created_at: string
+          current_price: number
+          id: string
+          logo_url: string | null
+          name: string
+          price_change_24h: number | null
+          symbol: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_price: number
+          id?: string
+          logo_url?: string | null
+          name: string
+          price_change_24h?: number | null
+          symbol: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_price?: number
+          id?: string
+          logo_url?: string | null
+          name?: string
+          price_change_24h?: number | null
+          symbol?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_profits: {
         Row: {
           bot_profit: number
@@ -1832,6 +1868,65 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          amount: number
+          coin_symbol: string
+          created_at: string
+          fee: number | null
+          from_address: string | null
+          id: string
+          status: string
+          to_address: string | null
+          tx_hash: string | null
+          type: string
+          updated_at: string
+          user_id: string
+          value_usd: number
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          coin_symbol: string
+          created_at?: string
+          fee?: number | null
+          from_address?: string | null
+          id?: string
+          status?: string
+          to_address?: string | null
+          tx_hash?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+          value_usd: number
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          coin_symbol?: string
+          created_at?: string
+          fee?: number | null
+          from_address?: string | null
+          id?: string
+          status?: string
+          to_address?: string | null
+          tx_hash?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          value_usd?: number
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transfers: {
         Row: {
           amount: number
@@ -1894,6 +1989,51 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      user_crypto_holdings: {
+        Row: {
+          asset_id: string
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          asset_id: string
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          asset_id?: string
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_crypto_holdings_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "crypto_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_crypto_holdings_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_funds: {
         Row: {
