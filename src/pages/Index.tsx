@@ -5,13 +5,21 @@ import { Logo } from "@/components/Logo";
 import { AuthForm } from "@/components/AuthForm";
 
 const Index = () => {
-  // Scroll to top on mount
+  // Disable scrolling on mount and re-enable on unmount
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Save original overflow style
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    // Disable scrolling
+    document.body.style.overflow = "hidden";
+    
+    // Re-enable scrolling on unmount
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
   }, []);
 
   return (
-    <div className="min-h-screen w-full flex flex-col relative overflow-hidden">
+    <div className="h-screen w-full flex flex-col relative overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[100px]" />
