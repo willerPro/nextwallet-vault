@@ -22,7 +22,7 @@ export function AuthForm() {
     setTimeout(() => {
       setIsLoading(false);
       toast.success(isLogin ? "Successfully logged in!" : "Account created!");
-      navigate("/dashboard");
+      navigate("/wallet-setup"); // Redirect to the new wallet setup page
     }, 1500);
   };
 

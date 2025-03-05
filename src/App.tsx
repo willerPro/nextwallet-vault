@@ -14,6 +14,7 @@ import Wallet from "./pages/Wallet";
 import Market from "./pages/Market";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import WalletSetup from "./pages/WalletSetup"; // Import the new page
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/wallet" element={<Wallet />} />
+            <Route path="/wallet-setup" element={<WalletSetup />} /> {/* Add the new route */}
             <Route path="/market" element={<Market />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
