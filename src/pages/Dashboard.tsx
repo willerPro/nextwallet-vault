@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [totalBalance, setTotalBalance] = useState(0);
   const [balanceChange, setBalanceChange] = useState(0);
 
-  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery({
+  const { data: transactions = [], isLoadingTransactions } = useQuery({
     queryKey: ["transactions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,7 +39,7 @@ const Dashboard = () => {
     },
   });
 
-  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
+  const { data: assets = [], isLoadingAssets } = useQuery({
     queryKey: ["crypto-assets"],
     queryFn: async () => {
       // First get all crypto assets
@@ -73,8 +73,8 @@ const Dashboard = () => {
           symbol: asset.symbol,
           name: asset.name,
           balance: Math.random() * 0.5, // Small random balance for demo
-          price: asset.current_price,
-          priceChange: asset.price_change_24h,
+          price: parseFloat(asset.current_price),
+          priceChange: parseFloat(asset.price_change_24h),
           logo_url: asset.logo_url
         }));
       }
@@ -179,7 +179,9 @@ const Dashboard = () => {
           {isLoadingAssets ? (
             <div className="space-y-3">
               {[1, 2, 3].map((_, index) => (
-                <GlassCard key={index} variant="dark" className="h-16 animate-pulse" />
+                <GlassCard key={index} variant="dark" className="h-16 animate-pulse">
+                  <div></div> {/* Empty div as child */}
+                </GlassCard>
               ))}
             </div>
           ) : (
@@ -203,7 +205,9 @@ const Dashboard = () => {
           {isLoadingTransactions ? (
             <div className="space-y-3">
               {[1, 2, 3].map((_, index) => (
-                <GlassCard key={index} variant="dark" className="h-16 animate-pulse" />
+                <GlassCard key={index} variant="dark" className="h-16 animate-pulse">
+                  <div></div> {/* Empty div as child */}
+                </GlassCard>
               ))}
             </div>
           ) : (

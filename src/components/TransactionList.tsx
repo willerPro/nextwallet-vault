@@ -9,8 +9,8 @@ import { format } from "date-fns";
 export interface Transaction {
   id: string;
   type: "sent" | "received" | "swap" | "buy" | "sell";
-  amount: string;
-  value_usd: string;
+  amount: string | number; // Updated to accept both string and number
+  value_usd: string | number; // Updated to accept both string and number
   coin_symbol: string;
   from_address?: string;
   to_address?: string;
@@ -83,7 +83,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions }
                 {tx.type === "received" || tx.type === "buy" ? "+" : "-"}
                 {tx.amount} {tx.coin_symbol}
               </div>
-              <div className="text-sm text-muted-foreground">${Number(tx.value_usd).toLocaleString()}</div>
+              <div className="text-sm text-muted-foreground">${typeof tx.value_usd === 'number' ? tx.value_usd.toLocaleString() : Number(tx.value_usd).toLocaleString()}</div>
             </div>
           </GlassCard>
         </motion.div>
