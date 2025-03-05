@@ -6,7 +6,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Filter } from "lucide-react";
+import { ArrowLeft, Filter, Download, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -88,6 +88,7 @@ const Transactions = () => {
             onClick={() => setFilter("received")}
             className={filter === "received" ? "bg-gold hover:bg-gold-dark text-primary-foreground" : ""}
           >
+            <Download className="h-4 w-4 mr-1" />
             Received
           </Button>
           <Button 
@@ -96,6 +97,7 @@ const Transactions = () => {
             onClick={() => setFilter("sent")}
             className={filter === "sent" ? "bg-gold hover:bg-gold-dark text-primary-foreground" : ""}
           >
+            <Send className="h-4 w-4 mr-1" />
             Sent
           </Button>
         </div>
