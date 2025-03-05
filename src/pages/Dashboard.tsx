@@ -72,7 +72,7 @@ const Dashboard = () => {
 
       // If no holdings, return sample data for demonstration
       if (!holdings || holdings.length === 0) {
-        // Return top assets with zero balance
+        // Return top assets with zero balance for demo
         return cryptoAssets.slice(0, 4).map(asset => ({
           id: asset.id,
           symbol: asset.symbol,
@@ -88,12 +88,12 @@ const Dashboard = () => {
       return holdings.map(holding => {
         const asset = holding.crypto_assets;
         return {
-          id: holding.id,
+          id: String(holding.id),  // Convert to string if needed
           symbol: asset.symbol,
           name: asset.name,
-          balance: parseFloat(holding.balance),
-          price: parseFloat(asset.current_price),
-          priceChange: parseFloat(asset.price_change_24h),
+          balance: parseFloat(String(holding.balance)),
+          price: parseFloat(String(asset.current_price)),
+          priceChange: parseFloat(String(asset.price_change_24h)),
           logo_url: asset.logo_url
         };
       });
