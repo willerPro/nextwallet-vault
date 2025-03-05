@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -11,6 +12,16 @@ import { CryptoAssetsList, CryptoAsset } from "@/components/CryptoAssetsList";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -18,6 +29,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [totalBalance, setTotalBalance] = useState("0");
   const [balanceChange, setBalanceChange] = useState(0);
+  const [showNoWalletWarning, setShowNoWalletWarning] = useState(false);
 
   const { data: userBalance, isLoading: isLoadingBalance } = useQuery({
     queryKey: ["user-balance"],
@@ -51,6 +63,26 @@ const Dashboard = () => {
       }
       
       return data.total_balance.toString();
+    },
+    enabled: !!user,
+  });
+
+  const { data: wallets = [], isLoading: isLoadingWallets } = useQuery({
+    queryKey: ['dashboard-wallets'],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error("Error fetching wallets:", error);
+        return [];
+      }
+      
+      return data || [];
     },
     enabled: !!user,
   });
@@ -155,11 +187,26 @@ const Dashboard = () => {
   }, []);
 
   const handleSendClick = () => {
-    navigate('/send');
+    // Check if user has wallets
+    if (wallets.length === 0) {
+      setShowNoWalletWarning(true);
+    } else {
+      navigate('/send');
+    }
   };
 
   const handleReceiveClick = () => {
-    navigate('/receive');
+    // Check if user has wallets
+    if (wallets.length === 0) {
+      setShowNoWalletWarning(true);
+    } else {
+      navigate('/receive');
+    }
+  };
+
+  const handleGoToWallet = () => {
+    setShowNoWalletWarning(false);
+    navigate('/wallet');
   };
 
   return (
@@ -247,6 +294,27 @@ const Dashboard = () => {
           )}
         </motion.div>
       </div>
+
+      {/* No Wallet Warning Dialog */}
+      <AlertDialog open={showNoWalletWarning} onOpenChange={setShowNoWalletWarning}>
+        <AlertDialogContent className="bg-background border border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wallet Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              You cannot send or receive crypto without a blockchain wallet. Would you like to create one now?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Dismiss</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleGoToWallet}
+              className="bg-gold hover:bg-gold-dark text-primary-foreground"
+            >
+              Go to Wallet
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
