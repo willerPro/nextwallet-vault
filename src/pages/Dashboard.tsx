@@ -1,316 +1,274 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { Logo } from "@/components/Logo";
-import { ArrowUpRight, Plus, Clock, Send, Download, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { TransactionList, Transaction } from "@/components/TransactionList";
-import { CryptoAssetsList, CryptoAsset } from "@/components/CryptoAssetsList";
-import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { ArrowUp, ArrowDown, Coins } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+
+type Transaction = {
+  id: string;
+  type: 'send' | 'receive';
+  amount: number;
+  coin_symbol: string;
+  created_at: string;
+};
+
+type Asset = {
+  id: string;
+  name: string;
+  symbol: string;
+  balance: number;
+  value: number;
+};
 
 const Dashboard = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [totalBalance, setTotalBalance] = useState("0");
-  const [balanceChange, setBalanceChange] = useState(0);
-  const [showNoWalletWarning, setShowNoWalletWarning] = useState(false);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[] | null>(null);
+  const [assets, setAssets] = useState<Asset[] | null>(null);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(true);
 
-  const { data: userBalance, isLoading: isLoadingBalance } = useQuery({
-    queryKey: ["user-balance"],
-    queryFn: async () => {
-      if (!user) return null;
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      if (!user) return;
 
-      const { data, error } = await supabase
-        .from("user_balances")
-        .select("total_balance")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error("Error fetching user balance:", error);
-        return null;
-      }
-      
-      if (!data) {
-        const { data: newData, error: insertError } = await supabase
-          .from("user_balances")
-          .insert({ user_id: user.id, total_balance: 0 })
-          .select()
-          .single();
-        
-        if (insertError) {
-          console.error("Error creating user balance:", insertError);
-          return null;
+      setIsLoadingTransactions(true);
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (error) {
+          console.error("Error fetching transactions:", error);
+        } else {
+          setRecentTransactions(data as Transaction[]);
         }
-        
-        return newData.total_balance.toString();
+      } finally {
+        setIsLoadingTransactions(false);
       }
-      
-      return data.total_balance.toString();
-    },
-    enabled: !!user,
-  });
+    };
 
-  const { data: wallets = [], isLoading: isLoadingWallets } = useQuery({
-    queryKey: ['dashboard-wallets'],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error("Error fetching wallets:", error);
-        return [];
+    const fetchAssets = async () => {
+      if (!user) return;
+
+      setIsLoadingAssets(true);
+      try {
+        const { data, error } = await supabase
+          .from('assets')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (error) {
+          console.error("Error fetching assets:", error);
+        } else {
+          setAssets(data as Asset[]);
+        }
+      } finally {
+        setIsLoadingAssets(false);
       }
-      
-      return data || [];
-    },
-    enabled: !!user,
-  });
+    };
 
-  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery({
-    queryKey: ["transactions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(5);
-      
-      if (error) {
-        console.error("Error fetching transactions:", error);
-        toast({
-          title: "Error fetching transactions",
-          description: error.message,
-          variant: "destructive",
-        });
-        return [];
-      }
-      
-      return data.map(tx => ({
-        ...tx,
-        amount: String(tx.amount || 0),
-        value_usd: String(tx.value_usd || 0),
-      })) as Transaction[];
-    },
-  });
-
-  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
-    queryKey: ["crypto-assets"],
-    queryFn: async () => {
-      const { data: cryptoAssets, error: assetsError } = await supabase
-        .from("crypto_assets")
-        .select("*");
-      
-      if (assetsError) {
-        console.error("Error fetching crypto assets:", assetsError);
-        return [];
-      }
-
-      const { data: holdings, error: holdingsError } = await supabase
-        .from("user_crypto_holdings")
-        .select(`
-          *,
-          crypto_assets(*)
-        `);
-      
-      if (holdingsError) {
-        console.error("Error fetching user holdings:", holdingsError);
-        return [];
-      }
-
-      if (!holdings || holdings.length === 0) {
-        return cryptoAssets.slice(0, 4).map(asset => ({
-          id: asset.id,
-          symbol: asset.symbol,
-          name: asset.name,
-          balance: Math.random() * 0.5,
-          price: parseFloat(asset.current_price),
-          priceChange: parseFloat(asset.price_change_24h),
-          logo_url: asset.logo_url
-        }));
-      }
-
-      return holdings.map(holding => {
-        const asset = holding.crypto_assets;
-        return {
-          id: String(holding.id),
-          symbol: asset.symbol,
-          name: asset.name,
-          balance: parseFloat(String(holding.balance)),
-          price: parseFloat(String(asset.current_price)),
-          priceChange: parseFloat(String(asset.price_change_24h)),
-          logo_url: asset.logo_url
-        };
-      });
-    },
-  });
-
-  useEffect(() => {
-    if (userBalance !== undefined && userBalance !== null) {
-      setTotalBalance(userBalance);
-    }
-  }, [userBalance]);
-
-  useEffect(() => {
-    if (assets && assets.length > 0) {
-      const totalValue = assets.reduce((sum, asset) => sum + (asset.balance * asset.price), 0);
-      const weightedChange = assets.reduce(
-        (sum, asset) => sum + (asset.balance * asset.price * asset.priceChange) / totalValue, 
-        0
-      );
-      setBalanceChange(weightedChange || 3.45);
-    }
-  }, [assets]);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  const handleSendClick = () => {
-    if (wallets.length === 0) {
-      setShowNoWalletWarning(true);
-    } else {
-      navigate('/send');
-    }
-  };
-
-  const handleReceiveClick = () => {
-    if (wallets.length === 0) {
-      setShowNoWalletWarning(true);
-    } else {
-      navigate('/receive');
-    }
-  };
-
-  const handleGoToWallet = () => {
-    setShowNoWalletWarning(false);
-    navigate('/wallet');
-  };
+    fetchTransactions();
+    fetchAssets();
+  }, [user]);
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       <motion.header 
-        className="p-4 flex justify-between items-center"
+        className="p-4 flex items-center justify-between"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <Logo />
-        <Button variant="outline" size="icon" className="border-gold/20 text-gold">
-          <Plus className="h-5 w-5" />
-        </Button>
+        <h1 className="text-xl font-bold">Dashboard</h1>
+        {/* Add any user-specific info or actions here */}
       </motion.header>
 
       <div className="flex-1 px-4 space-y-6">
+        {/* Quick Actions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <GlassCard variant="gold" className="text-center">
-            <h2 className="text-sm font-medium text-muted-foreground mb-1">Total Balance</h2>
-            <div className="text-3xl font-bold mb-1">
-              ${isLoadingBalance ? "..." : Number(totalBalance).toLocaleString()}
-            </div>
-            <div className="text-sm text-green-400 flex items-center justify-center">
-              <ArrowUpRight className="h-4 w-4 mr-1" />
-              <span>+{balanceChange.toFixed(2)}% today</span>
-            </div>
-
-            <div className="flex justify-center gap-2 mt-6">
-              <Button 
-                size="sm" 
-                className="bg-gold hover:bg-gold-dark text-primary-foreground"
-                onClick={handleSendClick}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Send
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="border-gold/20 text-foreground hover:bg-gold/10"
-                onClick={handleReceiveClick}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Receive
-              </Button>
-              <Button size="sm" variant="outline" className="border-gold/20 text-foreground hover:bg-gold/10">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Buy
-              </Button>
-            </div>
-          </GlassCard>
+          <div className="grid grid-cols-2 gap-4">
+            <GlassCard 
+              variant="dark" 
+              className="p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => navigate('/send')}
+            >
+              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-2">
+                <ArrowUp className="h-6 w-6 text-blue-500" />
+              </div>
+              <p className="text-sm font-medium">Send</p>
+            </GlassCard>
+            
+            <GlassCard 
+              variant="dark" 
+              className="p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => navigate('/receive')}
+            >
+              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mb-2">
+                <ArrowDown className="h-6 w-6 text-green-500" />
+              </div>
+              <p className="text-sm font-medium">Receive</p>
+            </GlassCard>
+          </div>
         </motion.div>
 
+        {/* Recent Transactions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.4 }}
+          className="mt-6"
         >
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-bold">Recent Transactions</h2>
-            <Button 
-              variant="link" 
-              className="text-gold p-0 h-auto"
-              onClick={() => navigate('/transactions')}
-            >
-              View all
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Recent Transactions</h2>
+            <Button variant="link" className="text-gold" onClick={() => navigate('/transactions')}>
+              See All
             </Button>
           </div>
-          
+
           {isLoadingTransactions ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((_, index) => (
-                <GlassCard key={index} variant="dark" className="h-16 animate-pulse">
-                  <div></div>
+              {[...Array(3)].map((_, index) => (
+                <GlassCard 
+                  key={index} 
+                  variant="dark" 
+                  className="p-4 flex justify-between items-center animate-pulse"
+                >
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-700/50 mr-3"></div>
+                    <div>
+                      <div className="h-4 w-20 bg-gray-700/50 rounded"></div>
+                      <div className="h-3 w-16 bg-gray-700/30 rounded mt-2"></div>
+                    </div>
+                  </div>
+                  <div className="h-4 w-16 bg-gray-700/50 rounded"></div>
+                </GlassCard>
+              ))}
+            </div>
+          ) : recentTransactions && recentTransactions.length > 0 ? (
+            <div className="space-y-3">
+              {recentTransactions.slice(0, 3).map((tx, index) => (
+                <GlassCard 
+                  key={index} 
+                  variant="dark" 
+                  className="p-4 flex justify-between items-center"
+                >
+                  <div className="flex items-center">
+                    <div className={`w-10 h-10 rounded-full ${tx.type === 'send' ? 'bg-red-500/20' : 'bg-green-500/20'} flex items-center justify-center mr-3`}>
+                      {tx.type === 'send' ? (
+                        <ArrowUp className="h-5 w-5 text-red-500" />
+                      ) : (
+                        <ArrowDown className="h-5 w-5 text-green-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium">{tx.type === 'send' ? 'Sent' : 'Received'} {tx.coin_symbol}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(tx.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className={`font-semibold ${tx.type === 'send' ? 'text-red-500' : 'text-green-500'}`}>
+                    {tx.type === 'send' ? '-' : '+'}{tx.amount.toString()}
+                  </p>
                 </GlassCard>
               ))}
             </div>
           ) : (
-            <TransactionList transactions={transactions} />
+            <GlassCard variant="dark" className="p-6 text-center">
+              <p className="text-muted-foreground">No transactions yet</p>
+              <Button 
+                variant="outline" 
+                className="mt-3 border-gold/20 text-foreground hover:bg-gold/10"
+                onClick={() => navigate('/send')}
+              >
+                Send Crypto
+              </Button>
+            </GlassCard>
           )}
         </motion.div>
-      </div>
 
-      <AlertDialog open={showNoWalletWarning} onOpenChange={setShowNoWalletWarning}>
-        <AlertDialogContent className="bg-background border border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Wallet Required</AlertDialogTitle>
-            <AlertDialogDescription>
-              You cannot send or receive crypto without a blockchain wallet. Would you like to create one now?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Dismiss</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleGoToWallet}
-              className="bg-gold hover:bg-gold-dark text-primary-foreground"
-            >
-              Go to Wallet
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* My Assets */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
+          className="mt-6"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">My Assets</h2>
+          </div>
+
+          <div className="space-y-3">
+            {isLoadingAssets ? (
+              [...Array(2)].map((_, index) => (
+                <GlassCard 
+                  key={index} 
+                  variant="dark" 
+                  className="p-4 flex justify-between items-center animate-pulse"
+                >
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-700/50 mr-3"></div>
+                    <div>
+                      <div className="h-4 w-16 bg-gray-700/50 rounded"></div>
+                      <div className="h-3 w-24 bg-gray-700/30 rounded mt-2"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="h-4 w-16 bg-gray-700/50 rounded"></div>
+                    <div className="h-3 w-12 bg-gray-700/30 rounded mt-2 ml-auto"></div>
+                  </div>
+                </GlassCard>
+              ))
+            ) : assets && assets.length > 0 ? (
+              assets.map((asset, index) => (
+                <GlassCard 
+                  key={index} 
+                  variant="dark" 
+                  className="p-4 flex justify-between items-center"
+                >
+                  <div className="flex items-center">
+                    <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center mr-3">
+                      <Coins className="h-5 w-5 text-indigo-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{asset.symbol}</p>
+                      <p className="text-xs text-muted-foreground">{asset.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">${asset.value.toString()}</p>
+                    <p className="text-xs text-muted-foreground">{asset.balance.toString()} {asset.symbol}</p>
+                  </div>
+                </GlassCard>
+              ))
+            ) : (
+              <GlassCard variant="dark" className="p-6 text-center">
+                <p className="text-muted-foreground">No assets yet</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-3 border-gold/20 text-foreground hover:bg-gold/10"
+                  onClick={() => navigate('/receive')}
+                >
+                  Receive Crypto
+                </Button>
+              </GlassCard>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Additional Content or components can be added here */}
+      </div>
     </div>
   );
 };

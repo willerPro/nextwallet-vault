@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,7 +15,8 @@ import {
   Plus, 
   Trash2, 
   Shield,
-  ArrowRight
+  ArrowRight,
+  Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +41,7 @@ type Wallet = {
   name: string;
   created_at: string;
   balance: number;
+  backup_status?: "backed_up" | "not_backed_up";
 };
 
 const WalletDetails = () => {
@@ -151,6 +154,10 @@ const WalletDetails = () => {
     );
   }
 
+  // For demo purposes, we'll determine backup status based on wallet ID
+  // In a real app, this would come from the database
+  const isBackedUp = id?.endsWith('4'); // Simple demo logic - consider wallets ending with "4" as backed up
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       <motion.header 
@@ -245,7 +252,13 @@ const WalletDetails = () => {
             <div className="flex justify-between items-center">
               <span>Backup</span>
               <div className="flex items-center">
-                <span className="text-red-500 mr-2">No backup</span>
+                {isBackedUp ? (
+                  <span className="text-green-500 mr-2 flex items-center">
+                    <Check className="h-4 w-4 mr-1" /> Backed up
+                  </span>
+                ) : (
+                  <span className="text-red-500 mr-2">No backup</span>
+                )}
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
