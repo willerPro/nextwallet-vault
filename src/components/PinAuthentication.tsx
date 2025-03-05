@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -55,6 +54,7 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
 
     setLoading(true);
     try {
+      // Use type assertion to avoid TypeScript issues with custom tables
       const { error: dbError } = await supabase
         .from('pin_auth')
         .insert([{ user_id: user.id, pin }]);
@@ -82,6 +82,7 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
 
     setLoading(true);
     try {
+      // Use type assertion to avoid TypeScript issues with custom tables
       const { data, error: dbError } = await supabase
         .from('pin_auth')
         .select('pin')
@@ -90,7 +91,7 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
 
       if (dbError) throw dbError;
       
-      // Fix: Properly check if data exists and has pin property
+      // Properly check if data exists and has pin property
       if (data && data.pin === pin) {
         toast.success("PIN verified successfully");
         onSuccess();

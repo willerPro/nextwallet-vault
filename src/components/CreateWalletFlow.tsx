@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -32,7 +31,7 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       
       try {
         const { data, error } = await supabase
-          .from('pin_auth' as any)
+          .from('pin_auth')
           .select('id')
           .eq('user_id', user.id)
           .single();
@@ -62,7 +61,7 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       
       // Get the next wallet number
       const { data: existingWallets } = await supabase
-        .from('wallets' as any)
+        .from('wallets')
         .select('*')
         .eq('user_id', user.id);
         
@@ -70,7 +69,7 @@ const CreateWalletFlow: React.FC<CreateWalletFlowProps> = ({ onComplete, onCance
       const walletName = `Wallet-${walletNumber.toString().padStart(2, '0')}`;
       
       const { error } = await supabase
-        .from('wallets' as any)
+        .from('wallets')
         .insert([{ 
           user_id: user.id,
           name: walletName,
