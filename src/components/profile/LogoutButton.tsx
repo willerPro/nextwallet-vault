@@ -17,7 +17,7 @@ const LogoutButton = ({
     delay: 0.4,
     duration: 0.4
   }}>
-      <Button variant="outline" onClick={onLogout} className="w-full border-destructive/30 rounded-2xl bg-gray-600 hover:bg-gray-500 text-zinc-950">
+      <Button variant="outline" onClick={onLogout} className="w-full border-destructive/30 rounded-2xl text-zinc-950 bg-amber-50">
         <LogOut className="h-5 w-5 mr-2" />
         Logout
       </Button>
