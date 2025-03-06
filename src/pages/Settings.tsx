@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -11,9 +12,6 @@ import {
   DollarSign, 
   Languages, 
   BarChart, 
-  HelpCircle, 
-  HeadphonesIcon, 
-  Users, 
   Info, 
   ChevronRight 
 } from "lucide-react";
@@ -187,30 +185,6 @@ const Settings = () => {
           transition={{ delay: 0.3, duration: 0.4 }}
         >
           <GlassCard variant="dark" className="divide-y divide-border/30">
-            <div className="py-3 flex items-center justify-between">
-              <div className="flex items-center">
-                <HelpCircle className="h-5 w-5 text-gold mr-3" />
-                <div className="font-medium">Help Center</div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </div>
-            
-            <div className="py-3 flex items-center justify-between">
-              <div className="flex items-center">
-                <HeadphonesIcon className="h-5 w-5 text-gold mr-3" />
-                <div className="font-medium">Support</div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </div>
-            
-            <div className="py-3 flex items-center justify-between">
-              <div className="flex items-center">
-                <Users className="h-5 w-5 text-gold mr-3" />
-                <div className="font-medium">Community</div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </div>
-            
             <div className="py-3 flex items-center justify-between">
               <div className="flex items-center">
                 <Info className="h-5 w-5 text-gold mr-3" />
