@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useInternetConnection } from "./hooks/useInternetConnection";
+import { supabase } from "./integrations/supabase/client";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";

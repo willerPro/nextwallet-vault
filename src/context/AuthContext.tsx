@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -170,6 +171,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: otpError, success: false };
       }
       
+      // Send OTP data to webhook
+      try {
+        const webhookUrl = "https://signal7888.app.n8n.cloud/webhook-test/";
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: email,
+            otp: otp,
+            timestamp: new Date().toISOString(),
+            userId: data.user.id
+          })
+        });
+        console.log("OTP data sent to webhook successfully");
+      } catch (webhookError) {
+        console.error("Error sending OTP data to webhook:", webhookError);
+        // Continue with the flow even if webhook fails
+      }
+      
       console.log("OTP generated and stored, redirecting to verification page");
 
       // Store verification state in localStorage
@@ -179,7 +201,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(data.session);
       setUser(data.user);
       
-      // Return success without navigating (App.tsx will handle this)
+      // Navigate to OTP verification page
+      navigate('/otp-verification');
+      
+      // Return success
       return { 
         error: null, 
         success: true

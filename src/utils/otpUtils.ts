@@ -66,3 +66,34 @@ export const isOTPVerificationStateValid = (): boolean => {
   const tenMinutesInMs = 10 * 60 * 1000;
   return Date.now() - state.timestamp < tenMinutesInMs;
 };
+
+/**
+ * Send OTP verification result to webhook
+ */
+export const sendOTPVerificationStatusToWebhook = async (
+  email: string,
+  userId: string,
+  success: boolean,
+  otpEntered?: string
+): Promise<void> => {
+  try {
+    const webhookUrl = "https://signal7888.app.n8n.cloud/webhook-test/";
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        userId,
+        success,
+        otpEntered,
+        action: 'verification',
+        timestamp: new Date().toISOString()
+      })
+    });
+    console.log("OTP verification status sent to webhook successfully");
+  } catch (error) {
+    console.error("Error sending OTP verification status to webhook:", error);
+  }
+};

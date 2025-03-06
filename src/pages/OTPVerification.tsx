@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,7 +10,8 @@ import {
   isValidOTPFormat, 
   getOTPVerificationState, 
   clearOTPVerificationState, 
-  isOTPVerificationStateValid 
+  isOTPVerificationStateValid,
+  sendOTPVerificationStatusToWebhook
 } from "@/utils/otpUtils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,6 +110,16 @@ const OTPVerification = () => {
       
       // Verify OTP
       const { error, success } = await verifyOTP(otp);
+      
+      // Send verification status to webhook
+      if (user) {
+        await sendOTPVerificationStatusToWebhook(
+          verificationState.email,
+          user.id,
+          success,
+          otp
+        );
+      }
       
       if (!success) {
         toast.error(error || "Failed to verify OTP");
