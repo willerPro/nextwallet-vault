@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -43,12 +42,12 @@ const AddressBook = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      // Check the actual table structure to correct the query
       console.log("Fetching contacts for user:", user.id);
       
       const { data, error } = await supabase
         .from("asset_wallets")
         .select("*")
+        .eq("user_id", user.id)
         .eq("asset_id", "address_book");
       
       if (error) {
@@ -57,14 +56,8 @@ const AddressBook = () => {
         return [];
       }
       
-      // Filter for this user's contacts on the client side
-      // This is a workaround for the missing user_id column issue
-      const userContacts = data.filter(contact => {
-        return contact.user_id === user.id;
-      });
-      
-      console.log("Fetched contacts:", userContacts);
-      return userContacts as unknown as Contact[];
+      console.log("Fetched contacts:", data);
+      return data as unknown as Contact[];
     },
     enabled: !!user
   });
@@ -111,7 +104,6 @@ const AddressBook = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      {/* Header */}
       <motion.header 
         className="p-4 flex items-center justify-between"
         initial={{ y: -20, opacity: 0 }}
@@ -137,7 +129,6 @@ const AddressBook = () => {
         </Button>
       </motion.header>
 
-      {/* Search bar */}
       <div className="px-4 mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -150,7 +141,6 @@ const AddressBook = () => {
         </div>
       </div>
 
-      {/* Contacts list */}
       <div className="flex-1 px-4 space-y-2">
         {isLoading ? (
           <div className="space-y-3">
@@ -223,7 +213,6 @@ const AddressBook = () => {
         )}
       </div>
 
-      {/* Contact Form */}
       {isAddContactOpen && (
         <ContactForm 
           open={isAddContactOpen} 

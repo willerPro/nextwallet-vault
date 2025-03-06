@@ -52,8 +52,11 @@ export type Database = {
           asset_symbol: string
           created_at: string
           id: string
+          label: string | null
+          name: string | null
           network: string
           updated_at: string
+          user_id: string | null
           wallet_address: string
         }
         Insert: {
@@ -62,8 +65,11 @@ export type Database = {
           asset_symbol: string
           created_at?: string
           id?: string
+          label?: string | null
+          name?: string | null
           network: string
           updated_at?: string
+          user_id?: string | null
           wallet_address: string
         }
         Update: {
@@ -72,8 +78,11 @@ export type Database = {
           asset_symbol?: string
           created_at?: string
           id?: string
+          label?: string | null
+          name?: string | null
           network?: string
           updated_at?: string
+          user_id?: string | null
           wallet_address?: string
         }
         Relationships: []

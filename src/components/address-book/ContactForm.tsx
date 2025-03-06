@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -66,6 +65,7 @@ export function ContactForm({ open, onOpenChange, contact }: ContactFormProps) {
       
       if (contact) {
         // Update existing contact
+        console.log("Updating contact:", contact.id, values);
         const { error } = await supabase
           .from("asset_wallets")
           .update({
@@ -77,9 +77,13 @@ export function ContactForm({ open, onOpenChange, contact }: ContactFormProps) {
           })
           .eq("id", contact.id);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error updating contact:", error);
+          throw error;
+        }
       } else {
         // Create new contact
+        console.log("Creating new contact for user:", user.id, values);
         const { error } = await supabase
           .from("asset_wallets")
           .insert({
@@ -93,7 +97,10 @@ export function ContactForm({ open, onOpenChange, contact }: ContactFormProps) {
             label: values.label,
           });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Error creating contact:", error);
+          throw error;
+        }
       }
     },
     onSuccess: () => {
