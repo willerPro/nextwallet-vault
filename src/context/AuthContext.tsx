@@ -145,13 +145,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Generate OTP and save it to the logins table
       const otp = generateOTP(6);
       
-      // Store OTP and session info in logins table
-      // We don't need to specify expires_at as the trigger will set it
+      // Calculate expiry time - 10 minutes from now
+      const expiryTime = new Date();
+      expiryTime.setMinutes(expiryTime.getMinutes() + 10);
+      
+      // Store OTP and session info in logins table with explicit expires_at
       const { error: otpError } = await supabase.from('logins').insert({
         user_id: data.user.id,
         user_email: email,
         otp,
-        // The expires_at will be set by the database trigger
+        expires_at: expiryTime.toISOString()
       });
 
       if (otpError) {
