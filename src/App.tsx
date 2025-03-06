@@ -5,7 +5,6 @@ import { useAuth } from "./context/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import WalletPage from "./pages/Wallet";
-import WalletSetup from "./pages/WalletSetup";
 import WalletDetails from "./pages/WalletDetails";
 import Profile from "./pages/Profile";
 import Transactions from "./pages/Transactions";
@@ -51,7 +50,6 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/wallet" element={<WalletPage />} />
-          <Route path="/wallet/setup" element={<WalletSetup />} />
           <Route path="/wallet/:id" element={<WalletDetails />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/transactions" element={<Transactions />} />

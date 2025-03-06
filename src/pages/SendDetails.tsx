@@ -46,7 +46,8 @@ const SendDetails = () => {
         return null;
       }
       
-      // Add balance and fiat_value for assets that don't have these fields
+      // Transform data to match the Asset interface
+      // Add default values for balance and fiat_value if they don't exist
       return {
         id: data.id,
         asset_name: data.asset_name,
