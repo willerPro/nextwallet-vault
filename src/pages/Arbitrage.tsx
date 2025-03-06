@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,10 @@ const TPS_OPTIONS = [100, 1000, 10000, "MAX"];
 
 // Minimum balance required to operate the arbitrage bot
 const MINIMUM_BALANCE = 2500;
+
+// Local storage key for countdown
+const COUNTDOWN_STORAGE_KEY = 'arbitrage_countdown';
+const OPERATION_ID_STORAGE_KEY = 'arbitrage_operation_id';
 
 const ArbitragePage = () => {
   const { user } = useAuth();
@@ -30,6 +35,32 @@ const ArbitragePage = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [originalBalance, setOriginalBalance] = useState(0);
   const incrementInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Load countdown from localStorage on component mount
+  useEffect(() => {
+    const savedCountdown = localStorage.getItem(COUNTDOWN_STORAGE_KEY);
+    const savedOperationId = localStorage.getItem(OPERATION_ID_STORAGE_KEY);
+    
+    if (savedCountdown) {
+      const countdownValue = parseInt(savedCountdown, 10);
+      const expireTime = parseInt(localStorage.getItem('countdown_expire_time') || '0', 10);
+      
+      // Calculate remaining time
+      if (expireTime > Date.now()) {
+        const remainingTime = Math.floor((expireTime - Date.now()) / 1000);
+        setCountdown(remainingTime > 0 ? remainingTime : 0);
+      } else {
+        // Countdown has expired, clear it
+        localStorage.removeItem(COUNTDOWN_STORAGE_KEY);
+        localStorage.removeItem('countdown_expire_time');
+        setCountdown(0);
+      }
+    }
+    
+    if (savedOperationId) {
+      setOperationId(savedOperationId);
+    }
+  }, []);
 
   // Check if user has any active arbitrage operations
   useEffect(() => {
@@ -51,6 +82,7 @@ const ArbitragePage = () => {
           if (data) {
             // User has an active operation
             setOperationId(data.id);
+            localStorage.setItem(OPERATION_ID_STORAGE_KEY, data.id);
             setSelectedWallet(data.wallet_id);
             setSelectedTPS(data.transactions_per_second);
             setIsRunning(true);
@@ -181,6 +213,7 @@ const ArbitragePage = () => {
       
       if (data) {
         setOperationId(data.id);
+        localStorage.setItem(OPERATION_ID_STORAGE_KEY, data.id);
         setIsRunning(true);
         toast.success("Arbitrage operation started successfully");
         
@@ -198,7 +231,15 @@ const ArbitragePage = () => {
     if (!operationId) return;
     
     // Start the 30 minute countdown
-    setCountdown(30 * 60); // 30 minutes in seconds
+    const thirtyMinutesInSeconds = 30 * 60;
+    setCountdown(thirtyMinutesInSeconds); // 30 minutes in seconds
+    
+    // Save countdown value to localStorage with expiration time
+    localStorage.setItem(COUNTDOWN_STORAGE_KEY, thirtyMinutesInSeconds.toString());
+    
+    // Set expiration time (30 minutes from now)
+    const expireTime = Date.now() + (thirtyMinutesInSeconds * 1000);
+    localStorage.setItem('countdown_expire_time', expireTime.toString());
     
     toast.info("Arbitrage will stop in 30 minutes", {
       description: "The system is preparing to complete all pending transactions"
@@ -211,12 +252,20 @@ const ArbitragePage = () => {
     
     const timer = setInterval(() => {
       setCountdown(prev => {
-        if (prev <= 1) {
+        const newValue = prev - 1;
+        if (newValue <= 0) {
           // Countdown finished, actually stop the arbitrage
           completeStopArbitrage();
+          // Clear localStorage values
+          localStorage.removeItem(COUNTDOWN_STORAGE_KEY);
+          localStorage.removeItem('countdown_expire_time');
+          localStorage.removeItem(OPERATION_ID_STORAGE_KEY);
           return 0;
         }
-        return prev - 1;
+        
+        // Save updated countdown to localStorage
+        localStorage.setItem(COUNTDOWN_STORAGE_KEY, newValue.toString());
+        return newValue;
       });
     }, 1000);
     
@@ -245,6 +294,10 @@ const ArbitragePage = () => {
       setIsRunning(false);
       setOperationId(null);
       stopBalanceIncrement();
+      // Clear localStorage values
+      localStorage.removeItem(OPERATION_ID_STORAGE_KEY);
+      localStorage.removeItem(COUNTDOWN_STORAGE_KEY);
+      localStorage.removeItem('countdown_expire_time');
       toast.success("Arbitrage operation stopped successfully");
     } catch (error) {
       console.error('Error in stop arbitrage:', error);
