@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
+import { ArrowUp, ArrowDown, Eye, EyeOff, Send, Upload } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useProfile } from "@/hooks/useProfile";
 
 type Transaction = {
   id: string;
@@ -19,6 +21,7 @@ type Transaction = {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useProfile(user);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[] | null>(null);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [hideBalance, setHideBalance] = useState(false);
@@ -97,88 +100,97 @@ const Dashboard = () => {
     return hideBalance ? "••••••" : `$${value.toLocaleString()}`;
   };
 
+  // Function to get user initials for avatar
+  const getInitials = () => {
+    if (!profile) return '?';
+    const nameParts = profile.full_name.split(' ');
+    if (nameParts.length >= 2) {
+      return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+    }
+    return profile.full_name.substring(0, 2).toUpperCase();
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      <motion.header 
-        className="p-4 flex items-center justify-between"
+      {/* User Profile Header */}
+      <motion.div
+        className="p-4"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <h1 className="text-xl font-bold">Dashboard</h1>
-        {/* Add any user-specific info or actions here */}
-      </motion.header>
+        <div className="flex items-center">
+          <Avatar className="h-10 w-10 border-2 border-gold">
+            <AvatarFallback className="bg-black text-gold text-sm font-semibold">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="ml-3">
+            <h2 className="text-sm font-bold">{profile?.full_name || 'User'}</h2>
+            <p className="text-xs text-muted-foreground">{profile?.email || ''}</p>
+          </div>
+        </div>
+      </motion.div>
 
-      <div className="flex-1 px-4 space-y-6">
-        {/* Total Balance Card */}
+      <div className="flex-1 px-4 space-y-5">
+        {/* Balance Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <GlassCard variant="gold" className="relative">
-            <div className="absolute right-4 top-4">
+          <GlassCard className="bg-black border border-gold/30 p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-sm font-medium text-gold">Total Balance</h2>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={toggleBalanceVisibility}
-                className="h-8 w-8 rounded-full bg-black/10 hover:bg-black/20"
+                className="h-6 w-6 rounded-full bg-black/60 hover:bg-black/80 border border-gold/20"
               >
-                {hideBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {hideBalance ? <EyeOff className="h-3 w-3 text-gold" /> : <Eye className="h-3 w-3 text-gold" />}
               </Button>
             </div>
-            <div className="text-center py-2">
-              <h2 className="text-sm font-medium text-muted-foreground">Total Balance</h2>
-              {isLoadingBalance ? (
-                <div className="text-3xl font-bold my-3 animate-pulse">Loading...</div>
-              ) : (
-                <div className="text-3xl font-bold my-3">{formatBalance(totalBalance)}</div>
-              )}
+            {isLoadingBalance ? (
+              <div className="text-2xl font-bold my-1 animate-pulse">Loading...</div>
+            ) : (
+              <div className="text-2xl font-bold my-1 text-white">{formatBalance(totalBalance)}</div>
+            )}
+            
+            {/* Send & Withdraw Buttons */}
+            <div className="flex gap-2 mt-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex-1 bg-transparent border border-gold/30 text-gold hover:bg-gold/10"
+                onClick={() => navigate('/send')}
+              >
+                <Send className="h-4 w-4 mr-1" />
+                Send
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex-1 bg-transparent border border-gold/30 text-gold hover:bg-gold/10"
+                onClick={() => navigate('/receive')}
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Receive
+              </Button>
             </div>
           </GlassCard>
-        </motion.div>
-
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-        >
-          <div className="grid grid-cols-2 gap-4">
-            <GlassCard 
-              variant="dark" 
-              className="p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => navigate('/send')}
-            >
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-2">
-                <ArrowUp className="h-6 w-6 text-blue-500" />
-              </div>
-              <p className="text-sm font-medium">Send</p>
-            </GlassCard>
-            
-            <GlassCard 
-              variant="dark" 
-              className="p-4 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => navigate('/receive')}
-            >
-              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mb-2">
-                <ArrowDown className="h-6 w-6 text-green-500" />
-              </div>
-              <p className="text-sm font-medium">Receive</p>
-            </GlassCard>
-          </div>
         </motion.div>
 
         {/* Recent Transactions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
-          className="mt-6"
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="mt-4"
         >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Recent Transactions</h2>
-            <Button variant="link" className="text-gold" onClick={() => navigate('/transactions')}>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-base font-semibold text-white">Recent Transactions</h2>
+            <Button variant="link" className="text-gold p-0 h-auto text-sm" onClick={() => navigate('/transactions')}>
               See All
             </Button>
           </div>
@@ -189,16 +201,16 @@ const Dashboard = () => {
                 <GlassCard 
                   key={index} 
                   variant="dark" 
-                  className="p-4 flex justify-between items-center animate-pulse"
+                  className="p-3 flex justify-between items-center animate-pulse bg-black/40 border border-white/5"
                 >
                   <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-700/50 mr-3"></div>
+                    <div className="w-8 h-8 rounded-full bg-black/50 mr-3"></div>
                     <div>
-                      <div className="h-4 w-20 bg-gray-700/50 rounded"></div>
-                      <div className="h-3 w-16 bg-gray-700/30 rounded mt-2"></div>
+                      <div className="h-3 w-16 bg-black/50 rounded"></div>
+                      <div className="h-2 w-12 bg-black/40 rounded mt-2"></div>
                     </div>
                   </div>
-                  <div className="h-4 w-16 bg-gray-700/50 rounded"></div>
+                  <div className="h-3 w-12 bg-black/50 rounded"></div>
                 </GlassCard>
               ))}
             </div>
@@ -207,39 +219,38 @@ const Dashboard = () => {
               {recentTransactions.slice(0, 3).map((tx, index) => (
                 <GlassCard 
                   key={index} 
-                  variant="dark" 
-                  className="p-4 flex justify-between items-center"
+                  className="p-3 flex justify-between items-center bg-black/40 border border-white/5"
                 >
                   <div className="flex items-center">
-                    <div className={`w-10 h-10 rounded-full ${tx.type === 'send' ? 'bg-red-500/20' : 'bg-green-500/20'} flex items-center justify-center mr-3`}>
+                    <div className={`w-8 h-8 rounded-full ${tx.type === 'send' ? 'bg-black border border-red-500/30' : 'bg-black border border-green-500/30'} flex items-center justify-center mr-3`}>
                       {tx.type === 'send' ? (
-                        <ArrowUp className="h-5 w-5 text-red-500" />
+                        <ArrowUp className="h-4 w-4 text-red-500" />
                       ) : (
-                        <ArrowDown className="h-5 w-5 text-green-500" />
+                        <ArrowDown className="h-4 w-4 text-green-500" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium">{tx.type === 'send' ? 'Sent' : 'Received'} {tx.coin_symbol}</p>
+                      <p className="text-sm font-medium">{tx.type === 'send' ? 'Sent' : 'Received'} {tx.coin_symbol}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(tx.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <p className={`font-semibold ${tx.type === 'send' ? 'text-red-500' : 'text-green-500'}`}>
+                  <p className={`text-sm font-semibold ${tx.type === 'send' ? 'text-red-500' : 'text-green-500'}`}>
                     {tx.type === 'send' ? '-' : '+'}{tx.amount?.toString()}
                   </p>
                 </GlassCard>
               ))}
             </div>
           ) : (
-            <GlassCard variant="dark" className="p-6 text-center">
+            <GlassCard className="p-5 text-center bg-black/40 border border-white/5">
               <p className="text-muted-foreground">No transactions yet</p>
               <Button 
                 variant="outline" 
-                className="mt-3 border-gold/20 text-foreground hover:bg-gold/10"
+                className="mt-3 border-gold/20 text-gold hover:bg-gold/10"
                 onClick={() => navigate('/send')}
               >
-                Send Crypto
+                Start Transaction
               </Button>
             </GlassCard>
           )}
