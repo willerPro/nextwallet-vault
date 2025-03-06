@@ -14,6 +14,7 @@ import SendDetails from "./pages/SendDetails";
 import Settings from "./pages/Settings";
 import NodeSettings from "./pages/NodeSettings";
 import CustomNetwork from "./pages/CustomNetwork";
+import FiatCurrency from "./pages/FiatCurrency";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AddressBook from "./pages/AddressBook";
@@ -62,6 +63,7 @@ function App() {
           <Route path="/node-settings" element={<NodeSettings />} />
           <Route path="/custom-network" element={<CustomNetwork />} />
           <Route path="/address-book" element={<AddressBook />} />
+          <Route path="/fiat-currency" element={<FiatCurrency />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -17,11 +18,13 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeSelectSheet } from "@/components/ThemeSelectSheet";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const [isThemeSheetOpen, setIsThemeSheetOpen] = useState(false);
+  const { currency } = useCurrency();
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -55,6 +58,10 @@ const Settings = () => {
 
   const handleCustomNetworkClick = () => {
     navigate("/custom-network");
+  };
+
+  const handleFiatCurrencyClick = () => {
+    navigate("/fiat-currency");
   };
 
   return (
@@ -149,13 +156,16 @@ const Settings = () => {
               </div>
             </div>
             
-            <div className="py-3 flex items-center justify-between">
+            <div 
+              className="py-3 flex items-center justify-between cursor-pointer"
+              onClick={handleFiatCurrencyClick}
+            >
               <div className="flex items-center">
                 <DollarSign className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Fiat Currency</div>
               </div>
               <div className="flex items-center">
-                <span className="text-muted-foreground mr-2">$ USD</span>
+                <span className="text-muted-foreground mr-2">{currency.symbol} {currency.code}</span>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>
