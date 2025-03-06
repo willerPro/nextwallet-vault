@@ -8,6 +8,7 @@ import { toast } from "sonner";
 export const useProfile = (user: User | null) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -61,9 +62,12 @@ export const useProfile = (user: User | null) => {
 
   // Function to update profile in both user metadata and profile table
   const updateProfile = async (updatedProfile: UserProfile) => {
-    if (!user) return;
+    if (!user || isUpdating) return;
     
+    setIsUpdating(true);
     try {
+      console.log("Updating profile:", updatedProfile);
+      
       // Update user metadata
       const { error } = await supabase.auth.updateUser({
         data: {
@@ -80,7 +84,7 @@ export const useProfile = (user: User | null) => {
       
       // Also update in profiles table
       try {
-        await supabase
+        const { error: profileError } = await supabase
           .from('user_profiles')
           .upsert({
             id: user.id,
@@ -91,15 +95,26 @@ export const useProfile = (user: User | null) => {
             gender: updatedProfile.gender,
             date_of_birth: updatedProfile.date_of_birth
           });
+          
+        if (profileError) {
+          console.error("Error updating profile table:", profileError);
+        }
       } catch (profileError) {
         console.error("Error updating profile table:", profileError);
       }
       
       // Update local state
       setProfile(updatedProfile);
+      
+      // Only show toast for user-initiated updates, not automatic ones
+      if (updatedProfile.country !== "Unknown" && updatedProfile.city !== "Unknown") {
+        toast.success("Profile updated successfully");
+      }
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -107,5 +122,5 @@ export const useProfile = (user: User | null) => {
     fetchProfile();
   }, [user]);
 
-  return { profile, setProfile, loading, fetchProfile, updateProfile };
+  return { profile, setProfile, loading, fetchProfile, updateProfile, isUpdating };
 };

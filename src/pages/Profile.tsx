@@ -30,21 +30,31 @@ const Profile = () => {
     window.scrollTo(0, 0);
   }, []);
   
-  // Update profile with location data when available
+  // Update profile with location data when available - with fix for the update loop
   useEffect(() => {
-    if (!locationData.loading && !locationData.error && profile && user) {
-      // Only update if current values are "Unknown" or empty
-      if (profile.country === "Unknown" || !profile.country) {
-        const updatedProfile = {
-          ...profile,
-          country: locationData.country,
-          city: locationData.city
-        };
-        
+    if (
+      !locationData.loading && 
+      !locationData.error && 
+      locationData.country && 
+      locationData.city && 
+      profile && 
+      user && 
+      (profile.country === "Unknown" || !profile.country || profile.city === "Unknown" || !profile.city)
+    ) {
+      // Create a new profile object to avoid direct mutation
+      const updatedProfile = {
+        ...profile,
+        country: locationData.country,
+        city: locationData.city
+      };
+      
+      // Only update if the values are actually different to prevent loops
+      if (updatedProfile.country !== profile.country || updatedProfile.city !== profile.city) {
+        console.log("Updating profile with geolocation data:", updatedProfile);
         updateProfile(updatedProfile);
       }
     }
-  }, [locationData, profile, user]);
+  }, [locationData.loading, locationData.country, locationData.city, profile?.country, profile?.city, user]);
   
   const handleLogout = async () => {
     try {
