@@ -1,13 +1,17 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Book, X } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface CryptoAsset {
   id: string;
@@ -19,19 +23,54 @@ interface CryptoAsset {
   balance: number;
 }
 
+interface Contact {
+  id: string;
+  name: string;
+  label: string;
+  wallet_address: string;
+  network: string;
+}
+
 const SendDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const asset = location.state?.asset as CryptoAsset;
+  const { user } = useAuth();
   
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isContactsSheetOpen, setIsContactsSheetOpen] = useState(false);
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["contacts"],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from("asset_wallets")
+        .select("*")
+        .eq("user_id", user.id);
+      
+      if (error) {
+        console.error("Error fetching contacts:", error);
+        return [];
+      }
+      
+      return data as Contact[];
+    },
+    enabled: !!user
+  });
+
+  useEffect(() => {
+    if (!asset) {
+      navigate("/send");
+    }
+  }, [asset, navigate]);
 
   if (!asset) {
-    navigate("/send");
     return null;
   }
 
@@ -96,6 +135,11 @@ const SendDetails = () => {
       });
       navigate("/dashboard");
     }, 1500);
+  };
+
+  const handleSelectContact = (contact: Contact) => {
+    setAddress(contact.wallet_address);
+    setIsContactsSheetOpen(false);
   };
 
   const hasZeroBalance = asset.balance <= 0;
@@ -206,13 +250,38 @@ const SendDetails = () => {
 
                 <div>
                   <Label htmlFor="address" className="text-sm text-muted-foreground mb-2 block">Wallet Address</Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Enter wallet address"
-                    className="bg-muted/10 border-muted/20"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Enter wallet address"
+                      className="pr-12 bg-muted/10 border-muted/20"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => setIsContactsSheetOpen(true)}
+                    >
+                      <Book className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {address && (
+                    <div className="flex justify-end mt-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setAddress("")}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Clear
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <Button 
@@ -228,6 +297,53 @@ const SendDetails = () => {
           </>
         )}
       </div>
+
+      {/* Contacts Sheet */}
+      <Sheet open={isContactsSheetOpen} onOpenChange={setIsContactsSheetOpen}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Select Contact</SheetTitle>
+          </SheetHeader>
+          
+          <div className="py-6">
+            {contacts.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No saved contacts</p>
+                <Button 
+                  variant="outline" 
+                  className="border-gold/20 text-gold hover:bg-gold/10"
+                  onClick={() => {
+                    setIsContactsSheetOpen(false);
+                    navigate("/address-book");
+                  }}
+                >
+                  Add New Contact
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {contacts.map((contact) => (
+                  <GlassCard
+                    key={contact.id}
+                    variant="dark"
+                    className="cursor-pointer hover:bg-muted/10"
+                    onClick={() => handleSelectContact(contact)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium">{contact.name}</h3>
+                        <span className="text-xs text-muted-foreground">{contact.label}</span>
+                        <div className="text-sm text-muted-foreground mt-1 break-all">{contact.wallet_address}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{contact.network}</div>
+                      </div>
+                    </div>
+                  </GlassCard>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

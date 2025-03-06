@@ -11,7 +11,6 @@ import {
   Moon, 
   DollarSign, 
   Languages, 
-  BarChart, 
   Info, 
   ChevronRight 
 } from "lucide-react";
@@ -47,6 +46,10 @@ const Settings = () => {
     }
   };
 
+  const handleAddressBookClick = () => {
+    navigate("/address-book");
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       <motion.header 
@@ -73,7 +76,10 @@ const Settings = () => {
           transition={{ delay: 0.1, duration: 0.4 }}
         >
           <GlassCard variant="dark" className="divide-y divide-border/30">
-            <div className="py-3 flex items-center justify-between">
+            <div 
+              className="py-3 flex items-center justify-between cursor-pointer"
+              onClick={handleAddressBookClick}
+            >
               <div className="flex items-center">
                 <BookOpen className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Address Book</div>
@@ -133,17 +139,6 @@ const Settings = () => {
             <div className="py-3 flex items-center justify-between">
               <div className="flex items-center">
                 <DollarSign className="h-5 w-5 text-gold mr-3" />
-                <div className="font-medium">Transaction Cost</div>
-              </div>
-              <div className="flex items-center">
-                <span className="text-muted-foreground mr-2">Middle</span>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-            
-            <div className="py-3 flex items-center justify-between">
-              <div className="flex items-center">
-                <DollarSign className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Fiat Currency</div>
               </div>
               <div className="flex items-center">
@@ -159,20 +154,6 @@ const Settings = () => {
               </div>
               <div className="flex items-center">
                 <span className="text-muted-foreground mr-2">English</span>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </div>
-            
-            <div className="py-3 flex items-center justify-between">
-              <div className="flex items-center">
-                <BarChart className="h-5 w-5 text-gold mr-3" />
-                <div className="font-medium">K-Line Color</div>
-              </div>
-              <div className="flex items-center">
-                <div className="flex space-x-1 mr-2">
-                  <div className="w-2 h-4 bg-green-500 rounded-sm"></div>
-                  <div className="w-2 h-4 bg-red-500 rounded-sm"></div>
-                </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>
