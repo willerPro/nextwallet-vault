@@ -17,7 +17,7 @@ type Wallet = {
   created_at: string;
 };
 
-const Wallet = () => {
+const WalletPage = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -30,11 +30,11 @@ const Wallet = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      // Use 'any' type assertion to bypass TypeScript checking for the table name
-      const { data, error } = await (supabase
-        .from('wallets' as any)
+      const { data, error } = await supabase
+        .from('wallets')
         .select('*')
-        .order('created_at', { ascending: false })) as { data: Wallet[] | null, error: any };
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error("Error fetching wallets:", error);
@@ -185,4 +185,4 @@ const Wallet = () => {
   );
 };
 
-export default Wallet;
+export default WalletPage;

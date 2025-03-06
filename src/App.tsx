@@ -4,7 +4,7 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Wallet from "./pages/Wallet";
+import WalletPage from "./pages/Wallet";
 import WalletSetup from "./pages/WalletSetup";
 import WalletDetails from "./pages/WalletDetails";
 import Profile from "./pages/Profile";
@@ -50,7 +50,7 @@ function App() {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/wallet" element={<Wallet />} />
+          <Route path="/wallet" element={<WalletPage />} />
           <Route path="/wallet/setup" element={<WalletSetup />} />
           <Route path="/wallet/:id" element={<WalletDetails />} />
           <Route path="/profile" element={<Profile />} />
