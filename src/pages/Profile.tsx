@@ -25,6 +25,7 @@ const Profile = () => {
   const [open, setOpen] = useState(false);
   const { profile, setProfile, loading, updateProfile, geoUpdated, setGeoUpdated } = useProfile(user);
   const locationData = useGeolocation();
+  const [hasAttemptedGeoUpdate, setHasAttemptedGeoUpdate] = useState(false);
   
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -32,6 +33,12 @@ const Profile = () => {
   
   // Update profile with location data when available - with fix for the update loop
   useEffect(() => {
+    // Only run this once per component mount
+    if (hasAttemptedGeoUpdate) {
+      return;
+    }
+    
+    // Check if we should update with geo data
     if (
       !locationData.loading && 
       !locationData.error && 
@@ -51,12 +58,13 @@ const Profile = () => {
       
       // Only update if the values are actually different to prevent loops
       if (updatedProfile.country !== profile.country || updatedProfile.city !== profile.city) {
-        console.log("Updating profile with geolocation data once:", updatedProfile);
+        console.log("Updating profile with geolocation data (one-time):", updatedProfile);
         // Pass false to not show toast for this automatic update
         updateProfile(updatedProfile, false);
+        setHasAttemptedGeoUpdate(true);
       }
     }
-  }, [locationData.loading, locationData.country, locationData.city, profile, user, geoUpdated]);
+  }, [locationData.loading, locationData.country, locationData.city, profile, user, geoUpdated, hasAttemptedGeoUpdate]);
   
   const handleLogout = async () => {
     try {

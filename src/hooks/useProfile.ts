@@ -11,6 +11,10 @@ export const useProfile = (user: User | null) => {
   const [isUpdating, setIsUpdating] = useState(false);
   // Add a state to track if we've already updated with geolocation
   const [geoUpdated, setGeoUpdated] = useState(false);
+  
+  // Add state to prevent rate limit errors
+  const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
+  const MIN_UPDATE_INTERVAL = 5000; // Minimum 5 seconds between updates
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -66,7 +70,18 @@ export const useProfile = (user: User | null) => {
   const updateProfile = async (updatedProfile: UserProfile, showToast: boolean = true) => {
     if (!user || isUpdating) return;
     
+    // Implement rate limiting to prevent too many API calls
+    const now = Date.now();
+    if (lastUpdateTime && now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+      if (showToast) {
+        toast.warning("Please wait a moment before updating again");
+      }
+      return;
+    }
+    
     setIsUpdating(true);
+    setLastUpdateTime(now);
+    
     try {
       // Only log when not an automatic update
       if (showToast) {
@@ -87,7 +102,7 @@ export const useProfile = (user: User | null) => {
       
       if (error) throw error;
       
-      // Also update in profiles table
+      // Also update in profiles table - wrapped in try/catch to prevent blocking on RLS errors
       try {
         const { error: profileError } = await supabase
           .from('user_profiles')
@@ -103,9 +118,11 @@ export const useProfile = (user: User | null) => {
           
         if (profileError) {
           console.error("Error updating profile table:", profileError);
+          // Continue execution - we've already updated the user metadata
         }
       } catch (profileError) {
         console.error("Error updating profile table:", profileError);
+        // Continue execution - don't throw here as we've already updated metadata
       }
       
       // Update local state
