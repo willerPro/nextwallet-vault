@@ -19,6 +19,7 @@ import CustomNetwork from "./pages/CustomNetwork";
 import FiatCurrency from "./pages/FiatCurrency";
 import NotFound from "./pages/NotFound";
 import OfflineFallback from "./pages/OfflineFallback";
+import AddressBook from "./pages/AddressBook";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNavigation } from "./components/BottomNavigation";
 
