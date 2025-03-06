@@ -648,6 +648,39 @@ export type Database = {
         }
         Relationships: []
       }
+      logins: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          login_time: string
+          otp: string
+          user_email: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          login_time?: string
+          otp: string
+          user_email: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          login_time?: string
+          otp?: string
+          user_email?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       mt5_connections: {
         Row: {
           broker_login: string

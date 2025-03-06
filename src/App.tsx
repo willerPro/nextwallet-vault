@@ -18,6 +18,7 @@ import NodeSettings from "./pages/NodeSettings";
 import CustomNetwork from "./pages/CustomNetwork";
 import FiatCurrency from "./pages/FiatCurrency";
 import ChangePinPage from "./pages/ChangePinPage";
+import OTPVerification from "./pages/OTPVerification";
 import NotFound from "./pages/NotFound";
 import OfflineFallback from "./pages/OfflineFallback";
 import AddressBook from "./pages/AddressBook";
@@ -45,7 +46,7 @@ function App() {
 
   // Check if the current route should display the bottom navigation
   const shouldShowBottomNav = () => {
-    const publicRoutes = ["/", "/login", "/signup"];
+    const publicRoutes = ["/", "/login", "/signup", "/otp-verification"];
     return !publicRoutes.includes(location.pathname);
   };
 
@@ -59,6 +60,7 @@ function App() {
     <>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/otp-verification" element={<OTPVerification />} />
         
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

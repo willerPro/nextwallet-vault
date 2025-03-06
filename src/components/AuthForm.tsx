@@ -30,7 +30,9 @@ export function AuthForm() {
         if (error) {
           toast.error(error.message || "Failed to sign in");
         } else if (success) {
-          toast.success("Successfully logged in!");
+          // Redirect is handled in AuthContext when OTP verification is complete
+          // Just inform the user about the OTP step
+          toast.info("Please enter the OTP code sent to your email");
         }
       } else {
         // Handle signup
@@ -77,7 +79,8 @@ export function AuthForm() {
       if (error) {
         toast.error("Biometric verification failed");
       } else if (success) {
-        toast.success("Successfully logged in with biometrics!");
+        // The OTP flow will handle the redirect
+        toast.info("Please verify the OTP code sent to your email");
       }
     } catch (error: any) {
       toast.error(error.message || "Biometric login failed");

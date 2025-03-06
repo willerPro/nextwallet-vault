@@ -4,6 +4,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { generateOTP } from '@/utils/otpUtils';
 
 type AuthContextType = {
   user: User | null;
@@ -19,9 +20,12 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{
     error: any | null;
     success: boolean;
+    tempSession?: Session | null;
   }>;
   signOut: () => Promise<void>;
   authenticateWithBiometric: () => Promise<boolean>;
+  setUser: (user: User | null) => void;
+  setSession: (session: Session | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -138,8 +142,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error, success: false };
       }
 
-      navigate('/wallet');
-      return { error: null, success: true };
+      // Generate OTP and save it to the logins table
+      const otp = generateOTP(6);
+      
+      // Store OTP and session info in logins table
+      const { error: otpError } = await supabase.from('logins').insert({
+        user_id: data.user.id,
+        user_email: email,
+        otp,
+        // expires_at will be set by the trigger
+      });
+
+      if (otpError) {
+        console.error("Error saving OTP:", otpError);
+        return { error: otpError, success: false };
+      }
+
+      // Send user to OTP verification page with temp session
+      navigate('/otp-verification', { 
+        state: { 
+          email,
+          session: data.session
+        } 
+      });
+
+      // We don't set the session here, it will be set after OTP verification
+      return { 
+        error: null, 
+        success: true,
+        tempSession: data.session
+      };
     } catch (error) {
       return { error, success: false };
     }
@@ -162,7 +194,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         signIn,
         signOut,
-        authenticateWithBiometric
+        authenticateWithBiometric,
+        setUser,
+        setSession
       }}
     >
       {children}
