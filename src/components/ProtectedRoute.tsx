@@ -1,10 +1,11 @@
 
-import { ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useInternetConnection } from '@/hooks/useInternetConnection';
 import OfflineFallback from '@/pages/OfflineFallback';
 import { supabase } from '@/integrations/supabase/client';
+import { getOTPVerificationState, isOTPVerificationStateValid } from '@/utils/otpUtils';
 
 export const ProtectedRoute = () => {
   const { user, loading, setUser, setSession } = useAuth();
@@ -14,8 +15,16 @@ export const ProtectedRoute = () => {
 
   useEffect(() => {
     const checkAuthentication = async () => {
-      // Skip if still loading or on OTP verification page
+      // Skip if still loading
       if (loading) return;
+      
+      // If user is on OTP verification page and has valid verification state, allow them to stay
+      if (location.pathname === '/otp-verification') {
+        const hasValidOtpState = getOTPVerificationState() && isOTPVerificationStateValid();
+        if (hasValidOtpState) {
+          return; // Allow access to OTP verification page with valid state
+        }
+      }
       
       if (user) {
         try {
@@ -40,8 +49,11 @@ export const ProtectedRoute = () => {
           console.error("Error checking login verification:", error);
         }
       } else {
-        console.log("User not authenticated, redirecting to home");
-        navigate('/', { replace: true });
+        // Don't redirect if on OTP verification page
+        if (location.pathname !== '/otp-verification') {
+          console.log("User not authenticated, redirecting to home");
+          navigate('/', { replace: true });
+        }
       }
     };
 
@@ -58,5 +70,11 @@ export const ProtectedRoute = () => {
     </div>;
   }
 
+  // Allow access to OTP verification page without requiring user
+  if (location.pathname === '/otp-verification') {
+    return <Outlet />;
+  }
+
+  // For all other protected routes, require user
   return user ? <Outlet /> : null;
 };

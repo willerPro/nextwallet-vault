@@ -4,7 +4,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { generateOTP } from '@/utils/otpUtils';
+import { generateOTP, storeOTPVerificationState } from '@/utils/otpUtils';
 
 type AuthContextType = {
   user: User | null;
@@ -20,12 +20,15 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{
     error: any | null;
     success: boolean;
-    tempSession?: Session | null;
   }>;
   signOut: () => Promise<void>;
   authenticateWithBiometric: () => Promise<boolean>;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
+  verifyOTP: (otp: string) => Promise<{
+    error: any | null;
+    success: boolean;
+  }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -170,23 +173,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("OTP generated and stored, redirecting to verification page");
 
-      // Send user to OTP verification page with temp session
-      // Here we use window.location to ensure a full page reload
-      window.localStorage.setItem('otpVerificationState', JSON.stringify({
-        email,
-        sessionId: data.session.access_token // Changed from data.session.id to data.session.access_token
-      }));
+      // Store verification state in localStorage
+      storeOTPVerificationState(email, data.session.access_token);
       
+      // Navigate to OTP verification page
       navigate('/otp-verification');
 
-      // We don't set the session here, it will be set after OTP verification
+      // Return success but don't set the session yet (will be set after OTP verification)
       return { 
         error: null, 
-        success: true,
-        tempSession: data.session
+        success: true
       };
     } catch (error) {
       console.error("Sign in exception:", error);
+      return { error, success: false };
+    }
+  };
+
+  const verifyOTP = async (otp: string) => {
+    try {
+      if (!user) {
+        // Get the current session
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (!sessionData.session) {
+          return { error: "No active session", success: false };
+        }
+        
+        // Check if OTP is valid
+        const { data, error } = await supabase
+          .from("logins")
+          .select("*")
+          .eq("user_id", sessionData.session.user.id)
+          .eq("otp", otp)
+          .eq("verified", false)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error || !data) {
+          console.error("OTP verification error:", error);
+          return { error: "Invalid or expired OTP code", success: false };
+        }
+
+        // Mark OTP as verified
+        await supabase
+          .from("logins")
+          .update({ verified: true })
+          .eq("id", data.id);
+
+        // Set session and user
+        setSession(sessionData.session);
+        setUser(sessionData.session.user);
+
+        return { error: null, success: true };
+      } else {
+        // User is already logged in
+        return { error: null, success: true };
+      }
+    } catch (error) {
+      console.error("OTP verification error:", error);
       return { error, success: false };
     }
   };
@@ -210,7 +257,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         authenticateWithBiometric,
         setUser,
-        setSession
+        setSession,
+        verifyOTP
       }}
     >
       {children}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import { isValidOTPFormat } from "@/utils/otpUtils";
+import { isValidOTPFormat, getOTPVerificationState, clearOTPVerificationState, isOTPVerificationStateValid } from "@/utils/otpUtils";
 import { useAuth } from "@/context/AuthContext";
 
 const OTPVerification = () => {
@@ -16,57 +16,29 @@ const OTPVerification = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [email, setEmail] = useState("");
-  const [sessionId, setSessionId] = useState("");
-  const [tempSession, setTempSession] = useState<any>(null);
   const navigate = useNavigate();
-  const { setUser, setSession } = useAuth();
+  const { verifyOTP } = useAuth();
 
   useEffect(() => {
-    // Get email and session from localStorage
-    const storedState = localStorage.getItem('otpVerificationState');
-    console.log("Retrieved OTP verification state:", storedState);
+    // Check if there's a pending OTP verification
+    const verificationState = getOTPVerificationState();
     
-    if (!storedState) {
-      console.log("No OTP verification state found. Redirecting to login.");
-      toast.error("Invalid session. Please log in again.");
+    if (!verificationState || !isOTPVerificationStateValid()) {
+      console.log("No valid OTP verification state found. Redirecting to login.");
+      toast.error("Session expired or invalid. Please log in again.");
+      clearOTPVerificationState();
       navigate("/");
       return;
     }
 
-    try {
-      const { email: storedEmail, sessionId: storedSessionId } = JSON.parse(storedState);
-      setEmail(storedEmail);
-      setSessionId(storedSessionId);
-      
-      // Get the actual session from Supabase
-      const fetchSession = async () => {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          setTempSession(data.session);
-          console.log("Retrieved session:", data.session.user.id);
-        } else {
-          console.log("No valid session found");
-          toast.error("Session expired. Please log in again.");
-          navigate("/");
-        }
-      };
-      
-      fetchSession();
-    } catch (error) {
-      console.error("Error parsing stored state:", error);
-      toast.error("Invalid session data. Please log in again.");
-      navigate("/");
-      return;
-    }
-
-    console.log("OTP verification page loaded with email:", email);
+    setEmail(verificationState.email);
+    console.log("OTP verification page loaded with email:", verificationState.email);
 
     // Set up timer
     const timer = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
           clearInterval(timer);
-          // Sign out and redirect when timer expires
           handleSessionExpired();
           return 0;
         }
@@ -77,9 +49,8 @@ const OTPVerification = () => {
     return () => clearInterval(timer);
   }, [navigate]);
 
-  const handleSessionExpired = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('otpVerificationState');
+  const handleSessionExpired = () => {
+    clearOTPVerificationState();
     toast.error("OTP verification time expired. Please log in again.");
     navigate("/");
   };
@@ -98,8 +69,9 @@ const OTPVerification = () => {
       return;
     }
 
-    if (!tempSession) {
-      toast.error("Session not found. Please log in again.");
+    const verificationState = getOTPVerificationState();
+    if (!verificationState) {
+      toast.error("Session expired. Please log in again.");
       navigate("/");
       return;
     }
@@ -107,47 +79,19 @@ const OTPVerification = () => {
     setIsSubmitting(true);
 
     try {
-      console.log("Verifying OTP for user:", tempSession.user.id);
+      const { error, success } = await verifyOTP(otp);
       
-      // Check if OTP is valid
-      const { data, error } = await supabase
-        .from("logins")
-        .select("*")
-        .eq("user_id", tempSession.user.id)
-        .eq("user_email", email)
-        .eq("otp", otp)
-        .eq("verified", false)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error || !data) {
-        console.error("OTP verification error:", error);
-        toast.error("Invalid or expired OTP code");
+      if (!success) {
+        toast.error(error || "Failed to verify OTP");
         setIsSubmitting(false);
         return;
       }
 
-      console.log("Valid OTP found:", data.id);
-
-      // Mark OTP as verified
-      await supabase
-        .from("logins")
-        .update({ verified: true })
-        .eq("id", data.id);
-
-      // Complete the authentication
+      // OTP verified successfully
       toast.success("OTP verification successful");
       
-      // Update auth context with the session
-      setSession(tempSession);
-      setUser(tempSession.user);
-      
-      console.log("Authentication complete, redirecting to dashboard");
-      
       // Clean up localStorage
-      localStorage.removeItem('otpVerificationState');
+      clearOTPVerificationState();
       
       // Redirect to dashboard
       navigate("/dashboard");
@@ -159,8 +103,8 @@ const OTPVerification = () => {
     }
   };
 
-  // If email or session is missing, render a minimal component before redirect happens
-  if (!email || !tempSession) {
+  // If email is missing, render a minimal component before redirect happens
+  if (!email) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -251,6 +195,7 @@ const OTPVerification = () => {
                     type="button"
                     className="text-gold hover:text-gold-light font-medium transition-colors"
                     onClick={() => {
+                      clearOTPVerificationState();
                       toast.error("Please sign in again to request a new OTP");
                       navigate("/");
                     }}
