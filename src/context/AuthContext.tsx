@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,6 +148,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log("Sign in successful, generating OTP");
+      
+      // Delete any old unused OTPs for this user
+      const { error: deleteError } = await supabase
+        .from('logins')
+        .delete()
+        .eq('user_id', data.user.id)
+        .eq('verified', false);
+        
+      if (deleteError) {
+        console.error("Error deleting old OTPs:", deleteError);
+        // Continue with the flow even if deletion fails
+      } else {
+        console.log("Old unverified OTPs deleted successfully");
+      }
       
       // Generate OTP and save it to the logins table
       const otp = generateOTP(6);
