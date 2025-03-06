@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,10 +175,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store verification state in localStorage
       storeOTPVerificationState(email, data.session.access_token);
       
+      // Set session temporarily so we can use it in the OTP verification
+      setSession(data.session);
+      setUser(data.user);
+      
       // Navigate to OTP verification page
       navigate('/otp-verification');
 
-      // Return success but don't set the session yet (will be set after OTP verification)
+      // Return success
       return { 
         error: null, 
         success: true
@@ -192,46 +195,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const verifyOTP = async (otp: string) => {
     try {
-      if (!user) {
-        // Get the current session
-        const { data: sessionData } = await supabase.auth.getSession();
-        
-        if (!sessionData.session) {
-          return { error: "No active session", success: false };
-        }
-        
-        // Check if OTP is valid
-        const { data, error } = await supabase
-          .from("logins")
-          .select("*")
-          .eq("user_id", sessionData.session.user.id)
-          .eq("otp", otp)
-          .eq("verified", false)
-          .gt("expires_at", new Date().toISOString())
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (error || !data) {
-          console.error("OTP verification error:", error);
-          return { error: "Invalid or expired OTP code", success: false };
-        }
-
-        // Mark OTP as verified
-        await supabase
-          .from("logins")
-          .update({ verified: true })
-          .eq("id", data.id);
-
-        // Set session and user
-        setSession(sessionData.session);
-        setUser(sessionData.session.user);
-
-        return { error: null, success: true };
-      } else {
-        // User is already logged in
-        return { error: null, success: true };
+      // Check if we already have a user from the sign-in process
+      const currentUser = user || (session ? session.user : null);
+      
+      if (!currentUser) {
+        return { error: "No active session", success: false };
       }
+      
+      // Check if OTP is valid
+      const { data, error } = await supabase
+        .from("logins")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .eq("otp", otp)
+        .eq("verified", false)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error || !data) {
+        console.error("OTP verification error:", error);
+        return { error: "Invalid or expired OTP code", success: false };
+      }
+
+      // Mark OTP as verified
+      await supabase
+        .from("logins")
+        .update({ verified: true })
+        .eq("id", data.id);
+
+      return { error: null, success: true };
     } catch (error) {
       console.error("OTP verification error:", error);
       return { error, success: false };

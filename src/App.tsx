@@ -39,6 +39,11 @@ function App() {
       return;
     }
 
+    // If user is on OTP verification page, don't redirect even if logged in
+    if (location.pathname === '/otp-verification') {
+      return;
+    }
+
     // Only redirect from home page if logged in
     if (isLoggedIn && location.pathname === "/") {
       navigate("/dashboard");

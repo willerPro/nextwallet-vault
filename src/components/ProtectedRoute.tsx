@@ -18,14 +18,21 @@ export const ProtectedRoute = () => {
       // Skip if still loading
       if (loading) return;
       
-      // If user is on OTP verification page and has valid verification state, allow them to stay
+      // Special case for OTP verification page
       if (location.pathname === '/otp-verification') {
         const hasValidOtpState = getOTPVerificationState() && isOTPVerificationStateValid();
         if (hasValidOtpState) {
           return; // Allow access to OTP verification page with valid state
         }
+        
+        // If on OTP page but no valid state, redirect to login
+        if (!user) {
+          navigate('/', { replace: true });
+          return;
+        }
       }
       
+      // For all other protected routes
       if (user) {
         try {
           // Check if the user has a verified login
@@ -39,17 +46,20 @@ export const ProtectedRoute = () => {
           
           if (error || !data || data.length === 0) {
             console.log("No verified login found for user:", user.id);
-            // If no verified login found, sign the user out
-            await supabase.auth.signOut();
-            setUser(null);
-            setSession(null);
-            navigate('/', { replace: true });
+            // If on OTP page, don't sign out
+            if (location.pathname !== '/otp-verification') {
+              // If no verified login found, sign the user out
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              navigate('/', { replace: true });
+            }
           }
         } catch (error) {
           console.error("Error checking login verification:", error);
         }
       } else {
-        // Don't redirect if on OTP verification page
+        // If not authenticated and not on OTP page, redirect to home
         if (location.pathname !== '/otp-verification') {
           console.log("User not authenticated, redirecting to home");
           navigate('/', { replace: true });
@@ -70,7 +80,7 @@ export const ProtectedRoute = () => {
     </div>;
   }
 
-  // Allow access to OTP verification page without requiring user
+  // Allow access to OTP verification page even if not fully authenticated
   if (location.pathname === '/otp-verification') {
     return <Outlet />;
   }

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -25,17 +24,15 @@ export function AuthForm() {
     
     try {
       if (isLogin) {
-        // Handle login
+        localStorage.setItem('lastLoginEmail', email);
+        
         const { error, success } = await signIn(email, password);
         if (error) {
           toast.error(error.message || "Failed to sign in");
         } else if (success) {
-          // Redirect is handled in AuthContext when OTP verification is complete
-          // Just inform the user about the OTP step
           toast.info("Please enter the OTP code sent to your email");
         }
       } else {
-        // Handle signup
         const userData = fullName ? { full_name: fullName } : undefined;
         const { error, success } = await signUp(email, password, userData);
         if (error) {
@@ -68,7 +65,6 @@ export function AuthForm() {
     setShowBiometricAuth(false);
     setIsLoading(true);
     try {
-      // Use the stored email from last login
       const storedEmail = localStorage.getItem('lastLoginEmail');
       if (!storedEmail) {
         toast.error("No stored login credentials found");
@@ -79,7 +75,6 @@ export function AuthForm() {
       if (error) {
         toast.error("Biometric verification failed");
       } else if (success) {
-        // The OTP flow will handle the redirect
         toast.info("Please verify the OTP code sent to your email");
       }
     } catch (error: any) {
@@ -93,7 +88,6 @@ export function AuthForm() {
     setShowBiometricAuth(false);
   };
 
-  // If showing biometric authentication, show PIN verification
   if (showBiometricAuth) {
     return (
       <PinAuthentication

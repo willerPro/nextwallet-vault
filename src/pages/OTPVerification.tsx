@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { isValidOTPFormat, getOTPVerificationState, clearOTPVerificationState, isOTPVerificationStateValid } from "@/utils/otpUtils";
@@ -17,7 +15,7 @@ const OTPVerification = () => {
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
-  const { verifyOTP } = useAuth();
+  const { verifyOTP, user, session } = useAuth();
 
   useEffect(() => {
     // Check if there's a pending OTP verification
@@ -26,6 +24,15 @@ const OTPVerification = () => {
     if (!verificationState || !isOTPVerificationStateValid()) {
       console.log("No valid OTP verification state found. Redirecting to login.");
       toast.error("Session expired or invalid. Please log in again.");
+      clearOTPVerificationState();
+      navigate("/");
+      return;
+    }
+
+    // Check if we have a user or session
+    if (!user && !session) {
+      console.log("No user or session found. Redirecting to login.");
+      toast.error("No active session. Please log in again.");
       clearOTPVerificationState();
       navigate("/");
       return;
@@ -47,7 +54,7 @@ const OTPVerification = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [navigate]);
+  }, [navigate, user, session]);
 
   const handleSessionExpired = () => {
     clearOTPVerificationState();
@@ -66,13 +73,6 @@ const OTPVerification = () => {
     
     if (!isValidOTPFormat(otp)) {
       toast.error("Please enter a valid 6-digit OTP code");
-      return;
-    }
-
-    const verificationState = getOTPVerificationState();
-    if (!verificationState) {
-      toast.error("Session expired. Please log in again.");
-      navigate("/");
       return;
     }
 
