@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Wallet, User, Send, Activity, CirclesDashedLine } from 'lucide-react';
+import { Home, Wallet, User, Send, Activity, CircleDashed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const BottomNavigation = () => {
@@ -43,7 +43,7 @@ export const BottomNavigation = () => {
             isActive("/arbitrage") ? "text-primary" : "text-muted-foreground"
           )}
         >
-          <CirclesDashedLine size={24} />
+          <CircleDashed size={24} />
           <span>Arbitrage</span>
         </Link>
         

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
-import { CircleNotch, Wallet, Play, Pause, GaugeHigh } from 'lucide-react';
+import { CircleDot, Wallet, Play, Pause, Gauge } from 'lucide-react';
 
 // Transaction per second options
 const TPS_OPTIONS = [100, 1000, 10000, "MAX"];
@@ -146,7 +146,7 @@ const ArbitragePage = () => {
     
     try {
       // Convert MAX to a numerical value
-      const tpsValue = selectedTPS === "MAX" ? 100000 : selectedTPS;
+      const tpsValue = selectedTPS === "MAX" ? 100000 : Number(selectedTPS);
       
       // Create arbitrage operation record
       const { data, error } = await supabase
@@ -288,7 +288,7 @@ const ArbitragePage = () => {
           className={`w-32 h-32 rounded-full flex items-center justify-center border-4 border-primary ${isRunning ? 'animate-spin' : ''}`}
         >
           <div className="w-28 h-28 bg-background rounded-full flex items-center justify-center">
-            <GaugeHigh className="h-12 w-12 text-primary" />
+            <Gauge className="h-12 w-12 text-primary" />
           </div>
         </div>
         
