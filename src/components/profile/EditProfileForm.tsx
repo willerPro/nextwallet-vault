@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,6 @@ const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps)
   const form = useForm({
     defaultValues: {
       full_name: profile?.full_name || '',
-      phone_number: profile?.phone_number || '',
-      country: profile?.country || '',
-      city: profile?.city || '',
       gender: profile?.gender || 'male',
       date_of_birth: profile?.date_of_birth || '2000-01-01'
     }
@@ -35,11 +33,13 @@ const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps)
       const updatedProfile: UserProfile = {
         ...profile,
         full_name: values.full_name,
-        phone_number: values.phone_number,
-        country: values.country,
-        city: values.city,
         gender: values.gender,
-        date_of_birth: values.date_of_birth
+        date_of_birth: values.date_of_birth,
+        // Preserve these fields but don't show them in the form
+        phone_number: profile.phone_number,
+        country: profile.country,
+        city: profile.city,
+        email: profile.email
       };
       
       await updateProfile(updatedProfile, true);
@@ -62,45 +62,6 @@ const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps)
               <FormLabel>Full Name</FormLabel>
               <FormControl>
                 <Input placeholder="Full Name" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="phone_number"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input placeholder="Phone Number" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <FormControl>
-                <Input placeholder="Country" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="city"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>City</FormLabel>
-              <FormControl>
-                <Input placeholder="City" {...field} />
               </FormControl>
             </FormItem>
           )}

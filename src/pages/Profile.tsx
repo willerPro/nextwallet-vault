@@ -13,7 +13,6 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 // Components
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileCard from "@/components/profile/ProfileCard";
-import ContactInformation from "@/components/profile/ContactInformation";
 import ProfileSettings from "@/components/profile/ProfileSettings";
 import AccountSection from "@/components/profile/AccountSection";
 import LogoutButton from "@/components/profile/LogoutButton";
@@ -101,9 +100,6 @@ const Profile = () => {
           open={open} 
           getInitials={getInitials} 
         />
-
-        {/* Contact Info */}
-        {profile && <ContactInformation profile={profile} />}
 
         {/* Settings */}
         <ProfileSettings />
