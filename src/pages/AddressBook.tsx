@@ -43,10 +43,12 @@ const AddressBook = () => {
     queryFn: async () => {
       if (!user) return [];
       
+      // Check the actual table structure to correct the query
+      console.log("Fetching contacts for user:", user.id);
+      
       const { data, error } = await supabase
         .from("asset_wallets")
         .select("*")
-        .eq("user_id", user.id)
         .eq("asset_id", "address_book");
       
       if (error) {
@@ -55,7 +57,14 @@ const AddressBook = () => {
         return [];
       }
       
-      return data as unknown as Contact[];
+      // Filter for this user's contacts on the client side
+      // This is a workaround for the missing user_id column issue
+      const userContacts = data.filter(contact => {
+        return contact.user_id === user.id;
+      });
+      
+      console.log("Fetched contacts:", userContacts);
+      return userContacts as unknown as Contact[];
     },
     enabled: !!user
   });
