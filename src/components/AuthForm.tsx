@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import PinAuthentication from "@/components/PinAuthentication";
+import { useNavigate } from "react-router-dom";
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +19,7 @@ export function AuthForm() {
   const [fullName, setFullName] = useState("");
   const [showBiometricAuth, setShowBiometricAuth] = useState(false);
   const { signIn, signUp, biometricEnabled, authenticateWithBiometric } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +34,8 @@ export function AuthForm() {
           toast.error(error.message || "Failed to sign in");
         } else if (success) {
           toast.info("Please enter the OTP code sent to your email");
+          // Explicitly navigate to OTP verification page
+          navigate('/otp-verification');
         }
       } else {
         const userData = fullName ? { full_name: fullName } : undefined;

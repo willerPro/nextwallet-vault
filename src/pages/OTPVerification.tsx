@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -6,8 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import { isValidOTPFormat, getOTPVerificationState, clearOTPVerificationState, isOTPVerificationStateValid } from "@/utils/otpUtils";
+import { 
+  isValidOTPFormat, 
+  getOTPVerificationState, 
+  clearOTPVerificationState, 
+  isOTPVerificationStateValid 
+} from "@/utils/otpUtils";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState("");
@@ -29,17 +36,31 @@ const OTPVerification = () => {
       return;
     }
 
-    // Check if we have a user or session
-    if (!user && !session) {
-      console.log("No user or session found. Redirecting to login.");
-      toast.error("No active session. Please log in again.");
-      clearOTPVerificationState();
-      navigate("/");
-      return;
-    }
-
     setEmail(verificationState.email);
     console.log("OTP verification page loaded with email:", verificationState.email);
+
+    // Get session if it doesn't exist but we have a token
+    const fetchUserSession = async () => {
+      if (!user && !session && verificationState.sessionToken) {
+        try {
+          const { data, error } = await supabase.auth.getUser(verificationState.sessionToken);
+          if (error || !data.user) {
+            console.error("Error fetching user from token:", error);
+            toast.error("Session expired. Please log in again.");
+            clearOTPVerificationState();
+            navigate("/");
+            return;
+          }
+          console.log("Retrieved user from token:", data.user.email);
+        } catch (error) {
+          console.error("Exception fetching user:", error);
+          clearOTPVerificationState();
+          navigate("/");
+        }
+      }
+    };
+    
+    fetchUserSession();
 
     // Set up timer
     const timer = setInterval(() => {
@@ -79,6 +100,15 @@ const OTPVerification = () => {
     setIsSubmitting(true);
 
     try {
+      // Get the verification state which contains the user ID
+      const verificationState = getOTPVerificationState();
+      if (!verificationState) {
+        toast.error("Session expired. Please login again.");
+        navigate('/');
+        return;
+      }
+      
+      // Verify OTP
       const { error, success } = await verifyOTP(otp);
       
       if (!success) {

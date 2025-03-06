@@ -25,6 +25,7 @@ export const isValidOTPFormat = (otp: string, length: number = 6): boolean => {
  * Store OTP verification data in localStorage
  */
 export const storeOTPVerificationState = (email: string, sessionToken: string): void => {
+  console.log("Storing OTP verification state for email:", email);
   localStorage.setItem('otpVerificationState', JSON.stringify({
     email,
     sessionToken,

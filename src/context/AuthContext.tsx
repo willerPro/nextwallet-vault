@@ -175,14 +175,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store verification state in localStorage
       storeOTPVerificationState(email, data.session.access_token);
       
-      // Set session temporarily so we can use it in the OTP verification
+      // Set session and user state
       setSession(data.session);
       setUser(data.user);
       
-      // Navigate to OTP verification page
-      navigate('/otp-verification');
-
-      // Return success
+      // Return success without navigating (App.tsx will handle this)
       return { 
         error: null, 
         success: true
