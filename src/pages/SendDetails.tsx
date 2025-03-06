@@ -12,6 +12,15 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { ContactSelectionSheet } from "@/components/send/ContactSelectionSheet";
 
+// Interface for asset data
+interface Asset {
+  id: string;
+  asset_name: string;
+  asset_symbol: string;
+  balance: number;
+  fiat_value: number;
+}
+
 // Simplified Contact interface to avoid deep type instantiation
 interface Contact {
   id: string;
@@ -30,20 +39,15 @@ const SendDetails = () => {
   const [note, setNote] = useState("");
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
-  // Explicitly type the return data
-  const { data: asset, isLoading } = useQuery<{
-    id: string;
-    asset_name: string;
-    asset_symbol: string;
-    balance: number;
-    fiat_value: number;
-  } | null>({
+  // Fetch asset data
+  const { data: asset, isLoading } = useQuery<Asset | null>({
     queryKey: ["asset", id],
     queryFn: async () => {
       if (!id) return null;
       const { data, error } = await supabase
-        .from("assets")
+        .from("asset_wallets")
         .select("*")
         .eq("id", id)
         .single();
@@ -53,10 +57,39 @@ const SendDetails = () => {
         return null;
       }
       
-      return data;
+      // Transform the data to match the Asset interface
+      return {
+        id: data.id,
+        asset_name: data.asset_name,
+        asset_symbol: data.asset_symbol,
+        balance: parseFloat(data.balance || "0"),
+        fiat_value: parseFloat(data.fiat_value || "0")
+      };
     },
     enabled: !!id,
   });
+
+  // Fetch contacts
+  useEffect(() => {
+    const fetchContacts = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from("asset_wallets")
+        .select("*")
+        .eq("asset_id", "address_book")
+        .eq("user_id", user.id);
+      
+      if (error) {
+        console.error("Error fetching contacts:", error);
+        return;
+      }
+      
+      setContacts(data as Contact[]);
+    };
+    
+    fetchContacts();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,16 +103,14 @@ const SendDetails = () => {
       // Create transaction record
       const { error } = await supabase.from("transactions").insert({
         user_id: user?.id,
-        asset_id: asset.id,
-        asset_name: asset.asset_name,
-        asset_symbol: asset.asset_symbol,
         amount: parseFloat(amount),
-        recipient_address: selectedContact.wallet_address,
-        recipient_name: selectedContact.name,
         type: "send",
         status: "completed",
-        note: note,
-        timestamp: new Date().toISOString(),
+        coin_symbol: asset.asset_symbol,
+        value_usd: parseFloat(amount) * (asset.fiat_value / asset.balance),
+        from_address: user?.id,
+        to_address: selectedContact.wallet_address,
+        wallet_id: asset.id,
       });
       
       if (error) throw error;
@@ -206,6 +237,7 @@ const SendDetails = () => {
         open={isContactSheetOpen}
         onOpenChange={setIsContactSheetOpen}
         onSelectContact={handleSelectContact}
+        contacts={contacts}
       />
     </div>
   );
