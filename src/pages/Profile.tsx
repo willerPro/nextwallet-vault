@@ -23,7 +23,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
-  const { profile, setProfile, loading, updateProfile } = useProfile(user);
+  const { profile, setProfile, loading, updateProfile, geoUpdated, setGeoUpdated } = useProfile(user);
   const locationData = useGeolocation();
   
   useEffect(() => {
@@ -39,6 +39,7 @@ const Profile = () => {
       locationData.city && 
       profile && 
       user && 
+      !geoUpdated && 
       (profile.country === "Unknown" || !profile.country || profile.city === "Unknown" || !profile.city)
     ) {
       // Create a new profile object to avoid direct mutation
@@ -50,11 +51,12 @@ const Profile = () => {
       
       // Only update if the values are actually different to prevent loops
       if (updatedProfile.country !== profile.country || updatedProfile.city !== profile.city) {
-        console.log("Updating profile with geolocation data:", updatedProfile);
-        updateProfile(updatedProfile);
+        console.log("Updating profile with geolocation data once:", updatedProfile);
+        // Pass false to not show toast for this automatic update
+        updateProfile(updatedProfile, false);
       }
     }
-  }, [locationData.loading, locationData.country, locationData.city, profile?.country, profile?.city, user]);
+  }, [locationData.loading, locationData.country, locationData.city, profile, user, geoUpdated]);
   
   const handleLogout = async () => {
     try {

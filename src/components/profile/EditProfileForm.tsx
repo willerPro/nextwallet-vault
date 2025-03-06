@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -43,9 +42,8 @@ const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps)
         date_of_birth: values.date_of_birth
       };
       
-      await updateProfile(updatedProfile);
+      await updateProfile(updatedProfile, true);
       
-      toast.success("Profile updated successfully");
       setOpen(false);
     } catch (error) {
       console.error("Error updating profile:", error);

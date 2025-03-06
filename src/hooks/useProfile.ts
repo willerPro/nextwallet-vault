@@ -9,6 +9,8 @@ export const useProfile = (user: User | null) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  // Add a state to track if we've already updated with geolocation
+  const [geoUpdated, setGeoUpdated] = useState(false);
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -61,12 +63,15 @@ export const useProfile = (user: User | null) => {
   };
 
   // Function to update profile in both user metadata and profile table
-  const updateProfile = async (updatedProfile: UserProfile) => {
+  const updateProfile = async (updatedProfile: UserProfile, showToast: boolean = true) => {
     if (!user || isUpdating) return;
     
     setIsUpdating(true);
     try {
-      console.log("Updating profile:", updatedProfile);
+      // Only log when not an automatic update
+      if (showToast) {
+        console.log("Updating profile:", updatedProfile);
+      }
       
       // Update user metadata
       const { error } = await supabase.auth.updateUser({
@@ -106,13 +111,20 @@ export const useProfile = (user: User | null) => {
       // Update local state
       setProfile(updatedProfile);
       
-      // Only show toast for user-initiated updates, not automatic ones
-      if (updatedProfile.country !== "Unknown" && updatedProfile.city !== "Unknown") {
+      // Only show toast for user-initiated updates
+      if (showToast) {
         toast.success("Profile updated successfully");
+      }
+
+      // Mark geolocation update as complete if we're updating with location data
+      if (updatedProfile.country && updatedProfile.city && !showToast) {
+        setGeoUpdated(true);
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+      if (showToast) {
+        toast.error("Failed to update profile");
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -122,5 +134,14 @@ export const useProfile = (user: User | null) => {
     fetchProfile();
   }, [user]);
 
-  return { profile, setProfile, loading, fetchProfile, updateProfile, isUpdating };
+  return { 
+    profile, 
+    setProfile, 
+    loading, 
+    fetchProfile, 
+    updateProfile, 
+    isUpdating, 
+    geoUpdated, 
+    setGeoUpdated 
+  };
 };
