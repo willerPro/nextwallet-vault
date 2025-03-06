@@ -1,114 +1,74 @@
 
-import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import {
-  Home,
-  Wallet,
-  Settings,
-  User,
-  LucideIcon,
-} from "lucide-react";
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Wallet, User, Send, Activity, CirclesDashedLine } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-type NavItem = {
-  name: string;
-  path: string;
-  icon: LucideIcon;
+export const BottomNavigation = () => {
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background z-50">
+      <div className="flex justify-around items-center p-2">
+        <Link
+          to="/dashboard"
+          className={cn(
+            "flex flex-col items-center py-1 px-3 text-xs",
+            isActive("/dashboard") ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          <Home size={24} />
+          <span>Home</span>
+        </Link>
+        
+        <Link
+          to="/wallet"
+          className={cn(
+            "flex flex-col items-center py-1 px-3 text-xs",
+            isActive("/wallet") ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          <Wallet size={24} />
+          <span>Wallet</span>
+        </Link>
+        
+        <Link
+          to="/arbitrage"
+          className={cn(
+            "flex flex-col items-center py-1 px-3 text-xs",
+            isActive("/arbitrage") ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          <CirclesDashedLine size={24} />
+          <span>Arbitrage</span>
+        </Link>
+        
+        <Link
+          to="/transactions"
+          className={cn(
+            "flex flex-col items-center py-1 px-3 text-xs",
+            isActive("/transactions") ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          <Activity size={24} />
+          <span>Activity</span>
+        </Link>
+        
+        <Link
+          to="/profile"
+          className={cn(
+            "flex flex-col items-center py-1 px-3 text-xs",
+            isActive("/profile") ? "text-primary" : "text-muted-foreground"
+          )}
+        >
+          <User size={24} />
+          <span>Profile</span>
+        </Link>
+      </div>
+    </div>
+  );
 };
-
-const navItems: NavItem[] = [
-  {
-    name: "Dashboard",
-    path: "/dashboard",
-    icon: Home,
-  },
-  {
-    name: "Wallet",
-    path: "/wallet",
-    icon: Wallet,
-  },
-  {
-    name: "Profile",
-    path: "/profile",
-    icon: User,
-  },
-  {
-    name: "Settings",
-    path: "/settings",
-    icon: Settings,
-  },
-];
-
-export function BottomNavigation() {
-  const location = useLocation();
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  
-  if (!mounted) return null;
-  
-  if (location.pathname === "/" || location.pathname === "/login" || location.pathname === "/signup") {
-    return null;
-  }
-  
-  return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 z-50 pb-safe-bottom"
-      >
-        <div className="mx-auto max-w-lg px-4 pb-4">
-          <nav className="bg-black border border-gold/30 rounded-2xl shadow-lg">
-            <ul className="flex justify-around">
-              {navItems.map((item) => (
-                <NavItem key={item.path} item={item} />
-              ))}
-            </ul>
-          </nav>
-        </div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
-function NavItem({ item }: { item: NavItem }) {
-  const location = useLocation();
-  const isActive = location.pathname === item.path;
-  
-  const Icon = item.icon;
-  
-  return (
-    <li className="relative">
-      <NavLink
-        to={item.path}
-        className={({ isActive }) =>
-          cn(
-            "flex flex-col items-center justify-center py-3 px-3 transition-colors",
-            isActive ? "text-gold" : "text-muted-foreground hover:text-foreground"
-          )
-        }
-      >
-        {({ isActive }) => (
-          <>
-            <div className="relative">
-              <Icon className="h-6 w-6" />
-              {isActive && (
-                <motion.div
-                  layoutId="navIndicator"
-                  className="absolute -bottom-1 left-0 right-0 mx-auto h-1 w-1 rounded-full bg-gold"
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-            </div>
-            <span className="mt-1 text-xs font-medium">{item.name}</span>
-          </>
-        )}
-      </NavLink>
-    </li>
-  );
-}

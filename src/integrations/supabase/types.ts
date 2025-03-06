@@ -45,6 +45,50 @@ export type Database = {
         }
         Relationships: []
       }
+      arbitrage_operations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          started_at: string | null
+          stopped_at: string | null
+          transactions_per_second: number
+          updated_at: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          started_at?: string | null
+          stopped_at?: string | null
+          transactions_per_second: number
+          updated_at?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          started_at?: string | null
+          stopped_at?: string | null
+          transactions_per_second?: number
+          updated_at?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arbitrage_operations_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_wallets: {
         Row: {
           asset_id: string

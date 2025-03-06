@@ -23,6 +23,7 @@ import OTPVerification from "./pages/OTPVerification";
 import NotFound from "./pages/NotFound";
 import OfflineFallback from "./pages/OfflineFallback";
 import AddressBook from "./pages/AddressBook";
+import Arbitrage from "./pages/Arbitrage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { getOTPVerificationState, isOTPVerificationStateValid } from "./utils/otpUtils";
@@ -121,6 +122,7 @@ function App() {
           <Route path="/custom-network" element={<CustomNetwork />} />
           <Route path="/address-book" element={<AddressBook />} />
           <Route path="/fiat-currency" element={<FiatCurrency />} />
+          <Route path="/arbitrage" element={<Arbitrage />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />
