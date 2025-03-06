@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,17 +75,51 @@ const SendDetails = () => {
       const amount = parseFloat(values.amount);
       const toAddress = values.address;
       
+      // Fetch user's default wallet
+      const { data: wallets, error: walletError } = await supabase
+        .from("wallets")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
+      
+      if (walletError) {
+        throw walletError;
+      }
+      
+      // If no wallet found, create a new one
+      let walletId: string;
+      if (wallets && wallets.length > 0) {
+        walletId = wallets[0].id;
+      } else {
+        const { data: newWallet, error: createError } = await supabase
+          .from("wallets")
+          .insert({
+            user_id: user.id,
+            name: "My Wallet",
+            balance: 0
+          })
+          .select()
+          .single();
+        
+        if (createError || !newWallet) {
+          throw createError || new Error("Failed to create wallet");
+        }
+        
+        walletId = newWallet.id;
+      }
+      
       // Create transaction record
       const { data, error } = await supabase
         .from("transactions")
         .insert({
           user_id: user.id,
+          wallet_id: walletId,
           type: "sent",
           amount: amount,
           value_usd: amount * (asset.price || 0),
           coin_symbol: asset.symbol,
           to_address: toAddress,
-          from_address: "Your Wallet", // You may want to replace this with actual wallet address
+          from_address: "Your Wallet",
           status: "completed",
         })
         .select();
@@ -97,9 +130,9 @@ const SendDetails = () => {
       
       toast.success(`Successfully sent ${amount} ${asset.symbol}`);
       navigate("/wallet");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending transaction:", error);
-      toast.error("Failed to send. Please try again.");
+      toast.error("Failed to send. Please try again: " + (error.message || "Unknown error"));
     } finally {
       setSending(false);
     }

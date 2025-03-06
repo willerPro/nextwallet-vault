@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -20,7 +19,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { Pen } from "lucide-react";
@@ -35,6 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 type Wallet = {
   id: string;
@@ -46,9 +46,9 @@ type Wallet = {
 
 const WalletDetails = () => {
   const { id } = useParams();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [walletName, setWalletName] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -68,11 +68,7 @@ const WalletDetails = () => {
       
       if (error) {
         console.error("Error fetching wallet:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load wallet details",
-          variant: "destructive",
-        });
+        toast.error("Failed to load wallet details");
         return null;
       }
       
@@ -98,18 +94,13 @@ const WalletDetails = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: "Wallet name updated",
-      });
+      toast.success("Wallet name updated");
       setIsEditing(false);
+      
+      queryClient.invalidateQueries({ queryKey: ['wallet-details', id] });
     } catch (error) {
       console.error("Error updating wallet name:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update wallet name",
-        variant: "destructive",
-      });
+      toast.error("Failed to update wallet name");
     }
   };
 
@@ -117,25 +108,25 @@ const WalletDetails = () => {
     if (!user || !id) return;
     
     try {
+      console.log("Deleting wallet with ID:", id);
       const { error } = await supabase
         .from('wallets')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error deleting wallet:", error);
+        throw error;
+      }
       
-      toast({
-        title: "Success",
-        description: "Wallet has been removed",
-      });
+      toast.success("Wallet has been removed");
+      
+      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      
       navigate('/wallet');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting wallet:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete wallet",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete wallet: " + (error.message || "Unknown error"));
     }
   };
 
