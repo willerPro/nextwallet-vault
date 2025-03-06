@@ -12,6 +12,9 @@ import { CircleDot, Wallet, Play, Pause, Gauge } from 'lucide-react';
 // Transaction per second options
 const TPS_OPTIONS = [100, 1000, 10000, "MAX"];
 
+// Minimum balance required to operate the arbitrage bot
+const MINIMUM_BALANCE = 2500;
+
 const ArbitragePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -132,6 +135,11 @@ const ArbitragePage = () => {
     setSelectedTPS(tps);
   };
 
+  // Check if the wallet has sufficient balance
+  const hasSufficientBalance = () => {
+    return walletBalance >= MINIMUM_BALANCE;
+  };
+
   // Start arbitrage operations
   const startArbitrage = async () => {
     if (!selectedWallet) {
@@ -141,6 +149,12 @@ const ArbitragePage = () => {
     
     if (!selectedTPS) {
       toast.error("Please select transactions per second");
+      return;
+    }
+    
+    // Check for minimum balance requirement
+    if (!hasSufficientBalance()) {
+      toast.error(`Insufficient funds. Minimum balance of ${formatCurrency(MINIMUM_BALANCE)} is required to operate the bot.`);
       return;
     }
     
@@ -335,6 +349,14 @@ const ArbitragePage = () => {
                 </Button>
               ))}
             </div>
+            
+            {selectedWallet && !hasSufficientBalance() && (
+              <div className="mt-2 p-3 bg-destructive/10 border border-destructive/30 rounded-md text-destructive">
+                <p className="text-sm font-medium">
+                  Insufficient funds! The selected wallet needs at least {formatCurrency(MINIMUM_BALANCE)} to operate even with 100 TPS.
+                </p>
+              </div>
+            )}
           </div>
         )}
         
@@ -347,6 +369,7 @@ const ArbitragePage = () => {
                   key={tps}
                   variant={selectedTPS === tps ? "default" : "outline"}
                   onClick={() => handleTPSSelect(tps)}
+                  disabled={!hasSufficientBalance()}
                 >
                   {tps} TPS
                 </Button>
@@ -362,7 +385,7 @@ const ArbitragePage = () => {
           <Button 
             size="lg"
             onClick={startArbitrage}
-            disabled={!selectedWallet || !selectedTPS}
+            disabled={!selectedWallet || !selectedTPS || !hasSufficientBalance()}
             className="px-6"
           >
             <Play className="mr-2 h-5 w-5" />
@@ -393,6 +416,10 @@ const ArbitragePage = () => {
         <p className="text-muted-foreground mt-2">
           When stopping the bot, a 30-minute cooldown period is required to properly close all open positions
           and ensure maximum profit retention.
+        </p>
+        <p className="text-muted-foreground mt-2">
+          <strong>Note:</strong> A minimum balance of {formatCurrency(MINIMUM_BALANCE)} is required to operate the arbitrage bot,
+          as this ensures sufficient capital to manage the positions across multiple exchanges.
         </p>
       </div>
     </div>
