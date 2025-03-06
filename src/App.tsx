@@ -17,6 +17,7 @@ import Settings from "./pages/Settings";
 import NodeSettings from "./pages/NodeSettings";
 import CustomNetwork from "./pages/CustomNetwork";
 import FiatCurrency from "./pages/FiatCurrency";
+import ChangePinPage from "./pages/ChangePinPage";
 import NotFound from "./pages/NotFound";
 import OfflineFallback from "./pages/OfflineFallback";
 import AddressBook from "./pages/AddressBook";
@@ -65,6 +66,7 @@ function App() {
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/wallet/:id" element={<WalletDetails />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/change-pin" element={<ChangePinPage />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/receive" element={<Receive />} />
           <Route path="/send" element={<Send />} />
