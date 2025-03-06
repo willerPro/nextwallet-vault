@@ -85,12 +85,12 @@ export function ContactForm({ open, onOpenChange, contact }: ContactFormProps) {
           .insert({
             wallet_address: values.wallet_address,
             network: values.network,
-            name: values.name,
-            label: values.label,
-            user_id: user.id,
             asset_id: "address_book",  // Using as a marker for address book entries
             asset_name: "Contact",
             asset_symbol: "CONTACT",
+            user_id: user.id,
+            name: values.name,
+            label: values.label,
           });
         
         if (error) throw error;

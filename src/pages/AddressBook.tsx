@@ -38,7 +38,7 @@ const AddressBook = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const { data: contacts = [], isLoading } = useQuery({
+  const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ["contacts"],
     queryFn: async () => {
       if (!user) return [];
@@ -55,7 +55,7 @@ const AddressBook = () => {
         return [];
       }
       
-      return data as Contact[];
+      return data as unknown as Contact[];
     },
     enabled: !!user
   });
@@ -95,9 +95,9 @@ const AddressBook = () => {
 
   const filteredContacts = contacts.filter(
     contact =>
-      contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contact.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contact.wallet_address.toLowerCase().includes(searchQuery.toLowerCase())
+      contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contact.wallet_address?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

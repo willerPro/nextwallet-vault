@@ -1,3 +1,4 @@
+
 // Import necessary libraries and components
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -43,16 +44,17 @@ const SendDetails = () => {
       if (!user) return [];
       
       const { data, error } = await supabase
-        .from('contacts')
+        .from('asset_wallets')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('asset_id', 'address_book');
         
       if (error) {
         console.error("Error fetching contacts:", error);
         return [];
       }
       
-      return data as Contact[];
+      return data as unknown as Contact[];
     },
     enabled: !!user,
   });
@@ -86,12 +88,14 @@ const SendDetails = () => {
             type: 'send',
             amount: amountToSend,
             coin_symbol: selectedContact.asset_symbol,
-            sender_wallet_address: 'your_wallet_address', // Replace with actual sender wallet address
-            receiver_wallet_address: selectedContact.wallet_address,
+            from_address: 'your_wallet_address', // Replace with actual sender wallet address
+            to_address: selectedContact.wallet_address,
             user_id: user?.id,
-          },
+            value_usd: amountToSend, // Assuming 1:1 ratio for simplicity
+            wallet_id: selectedContact.id, // Using contact id as wallet id for now
+          }
         ])
-        .select()
+        .select();
 
       if (transactionError) {
         console.error("Error creating transaction:", transactionError);

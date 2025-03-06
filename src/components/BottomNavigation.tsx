@@ -8,6 +8,7 @@ import {
   Wallet,
   Settings,
   User,
+  Book,
   LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,11 @@ const navItems: NavItem[] = [
     name: "Wallet",
     path: "/wallet",
     icon: Wallet,
+  },
+  {
+    name: "Address Book",
+    path: "/address-book",
+    icon: Book,
   },
   {
     name: "Settings",
