@@ -36,6 +36,12 @@ function App() {
     }
   }, [isLoggedIn, location, navigate, isInitialRender]);
 
+  // Check if the current route should display the bottom navigation
+  const shouldShowBottomNav = () => {
+    const publicRoutes = ["/", "/login", "/signup"];
+    return !publicRoutes.includes(location.pathname);
+  };
+
   return (
     <>
       <Routes>
@@ -58,7 +64,7 @@ function App() {
         
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <BottomNavigation />
+      {shouldShowBottomNav() && <BottomNavigation />}
     </>
   );
 }
