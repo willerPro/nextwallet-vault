@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -21,7 +20,7 @@ interface Asset {
   fiat_value: number;
 }
 
-// Simplified Contact interface to avoid deep type instantiation
+// Contact interface for address book contacts
 interface Contact {
   id: string;
   name: string;
@@ -75,9 +74,8 @@ const SendDetails = () => {
       if (!user) return;
       
       const { data, error } = await supabase
-        .from("asset_wallets")
+        .from("contacts")
         .select("*")
-        .eq("asset_id", "address_book")
         .eq("user_id", user.id);
       
       if (error) {
