@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -347,15 +346,19 @@ const ArbitragePage = () => {
     <div className="container px-4 py-8 mx-auto">
       <h1 className="text-3xl font-bold mb-6">Arbitrage Trading Bot</h1>
       
-      {/* Spinner Section */}
+      {/* Animated Dot Section */}
       <div className="flex flex-col items-center justify-center mb-8">
-        <div 
-          ref={spinnerRef}
-          className={`w-32 h-32 rounded-full flex items-center justify-center border-4 border-primary ${isRunning ? 'animate-spin' : ''}`}
-        >
-          <div className="w-28 h-28 bg-background rounded-full flex items-center justify-center">
-            <Gauge className="h-12 w-12 text-primary" />
-          </div>
+        <div className="relative w-32 h-32 flex items-center justify-center">
+          <div 
+            className={`absolute w-4 h-4 rounded-full bg-primary ${
+              isRunning 
+                ? 'animate-[pulse_1.5s_ease-in-out_infinite] scale-[3]' 
+                : ''
+            } transition-all duration-700`}
+          />
+          {isRunning && (
+            <CircleDot className="absolute h-32 w-32 text-primary/20 animate-pulse" />
+          )}
         </div>
         
         {isRunning && (
@@ -457,21 +460,16 @@ const ArbitragePage = () => {
         )}
       </div>
       
-      {/* Information Section */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-2">How it works</h3>
-        <p className="text-muted-foreground">
-          The arbitrage bot monitors price discrepancies across multiple exchanges and executes trades
+      {/* Information Section - Made Smaller */}
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold mb-1">How it works</h3>
+        <p className="text-xs text-muted-foreground">
+          The arbitrage bot monitors price discrepancies across exchanges and executes trades
           to profit from these differences. Each transaction increases your balance by approximately 0.0028 cents.
-          Higher TPS settings result in more transactions and faster profit accumulation.
         </p>
-        <p className="text-muted-foreground mt-2">
-          When stopping the bot, a 30-minute cooldown period is required to properly close all open positions
-          and ensure maximum profit retention.
-        </p>
-        <p className="text-muted-foreground mt-2">
-          <strong>Note:</strong> A minimum balance of {formatCurrency(MINIMUM_BALANCE)} is required to operate the arbitrage bot,
-          as this ensures sufficient capital to manage the positions across multiple exchanges.
+        <p className="text-xs text-muted-foreground mt-1">
+          When stopping the bot, a 30-minute cooldown period is required to properly close all positions.
+          A minimum balance of {formatCurrency(MINIMUM_BALANCE)} is needed to operate the bot.
         </p>
       </div>
     </div>
