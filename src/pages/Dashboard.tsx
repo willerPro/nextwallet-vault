@@ -219,7 +219,7 @@ const Dashboard = () => {
               {recentTransactions.slice(0, 3).map((tx, index) => (
                 <GlassCard 
                   key={index} 
-                  className="p-3 flex justify-between items-center bg-black/40 border border-white/5"
+                  className="p-3 flex justify-between items-center bg-black border border-gold/10"
                 >
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full ${tx.type === 'send' ? 'bg-black border border-red-500/30' : 'bg-black border border-green-500/30'} flex items-center justify-center mr-3`}>
@@ -243,7 +243,7 @@ const Dashboard = () => {
               ))}
             </div>
           ) : (
-            <GlassCard className="p-5 text-center bg-black/40 border border-white/5">
+            <GlassCard className="p-5 text-center bg-black border border-gold/10">
               <p className="text-muted-foreground">No transactions yet</p>
               <Button 
                 variant="outline" 

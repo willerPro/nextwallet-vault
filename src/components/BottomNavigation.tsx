@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,7 +63,7 @@ export function BottomNavigation() {
         className="fixed bottom-0 left-0 right-0 z-50 pb-safe-bottom"
       >
         <div className="mx-auto max-w-lg px-4 pb-4">
-          <nav className="glass-gold rounded-2xl border border-gold/20 shadow-lg">
+          <nav className="bg-black border border-gold/30 rounded-2xl shadow-lg">
             <ul className="flex justify-around">
               {navItems.map((item) => (
                 <NavItem key={item.path} item={item} />
