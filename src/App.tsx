@@ -39,6 +39,7 @@ function App() {
       return;
     }
 
+    // Only redirect from home page if logged in
     if (isLoggedIn && location.pathname === "/") {
       navigate("/dashboard");
     }
@@ -59,6 +60,7 @@ function App() {
   return (
     <>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Index />} />
         <Route path="/otp-verification" element={<OTPVerification />} />
         

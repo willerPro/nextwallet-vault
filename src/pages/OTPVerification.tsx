@@ -18,16 +18,21 @@ const OTPVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser, setSession } = useAuth();
+  
+  // Get email and session from location state
   const email = location.state?.email || "";
   const tempSession = location.state?.session || null;
 
   useEffect(() => {
-    // Redirect if no email in state (user accessed page directly)
+    // Redirect if no email or session in state (user accessed page directly)
     if (!email || !tempSession) {
+      console.log("Missing email or session. Redirecting to login.");
       toast.error("Invalid session. Please log in again.");
       navigate("/");
       return;
     }
+
+    console.log("OTP verification page loaded with email:", email);
 
     // Set up timer
     const timer = setInterval(() => {
@@ -68,6 +73,8 @@ const OTPVerification = () => {
     setIsSubmitting(true);
 
     try {
+      console.log("Verifying OTP for user:", tempSession.user.id);
+      
       // Check if OTP is valid
       const { data, error } = await supabase
         .from("logins")
@@ -82,10 +89,13 @@ const OTPVerification = () => {
         .single();
 
       if (error || !data) {
+        console.error("OTP verification error:", error);
         toast.error("Invalid or expired OTP code");
         setIsSubmitting(false);
         return;
       }
+
+      console.log("Valid OTP found:", data.id);
 
       // Mark OTP as verified
       await supabase
@@ -100,6 +110,8 @@ const OTPVerification = () => {
       setSession(tempSession);
       setUser(tempSession.user);
       
+      console.log("Authentication complete, redirecting to dashboard");
+      
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error: any) {
@@ -109,6 +121,17 @@ const OTPVerification = () => {
       setIsSubmitting(false);
     }
   };
+
+  // If email or session is missing, render a minimal component before redirect happens
+  if (!email || !tempSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p>Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col relative overflow-hidden">

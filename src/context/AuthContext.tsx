@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,15 +132,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Attempting to sign in:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
+        console.error("Sign in error:", error);
         return { error, success: false };
       }
 
+      console.log("Sign in successful, generating OTP");
+      
       // Generate OTP and save it to the logins table
       const otp = generateOTP(6);
       
@@ -161,13 +165,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error saving OTP:", otpError);
         return { error: otpError, success: false };
       }
+      
+      console.log("OTP generated and stored, redirecting to verification page");
 
       // Send user to OTP verification page with temp session
       navigate('/otp-verification', { 
         state: { 
           email,
           session: data.session
-        } 
+        },
+        replace: false // Use push instead of replace to ensure history is preserved
       });
 
       // We don't set the session here, it will be set after OTP verification
@@ -177,6 +184,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tempSession: data.session
       };
     } catch (error) {
+      console.error("Sign in exception:", error);
       return { error, success: false };
     }
   };
