@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -50,7 +49,6 @@ export function BottomNavigation() {
   
   if (!mounted) return null;
   
-  // Don't show navigation on authentication pages
   if (location.pathname === "/" || location.pathname === "/login" || location.pathname === "/signup") {
     return null;
   }

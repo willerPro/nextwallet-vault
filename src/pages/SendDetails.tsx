@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -74,16 +75,28 @@ const SendDetails = () => {
       if (!user) return;
       
       const { data, error } = await supabase
-        .from("contacts")
+        .from("asset_wallets")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("asset_id", "address_book");
       
       if (error) {
         console.error("Error fetching contacts:", error);
         return;
       }
       
-      setContacts(data as Contact[]);
+      if (data) {
+        // Transform to match Contact interface
+        const contactsList: Contact[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.asset_name || "",
+          label: item.asset_symbol || "",
+          wallet_address: item.wallet_address || "",
+          network: item.network || "",
+          user_id: item.user_id
+        }));
+        setContacts(contactsList);
+      }
     };
     
     fetchContacts();
