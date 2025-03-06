@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -50,7 +51,7 @@ function App() {
         <Route path="/send" element={<Send />} />
         <Route path="/send/:id" element={<SendDetails />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/address-book" element={<AddressBook />} /> {/* New route */}
+        <Route path="/address-book" element={<AddressBook />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />

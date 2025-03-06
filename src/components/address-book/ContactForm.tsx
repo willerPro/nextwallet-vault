@@ -83,11 +83,14 @@ export function ContactForm({ open, onOpenChange, contact }: ContactFormProps) {
         const { error } = await supabase
           .from("asset_wallets")
           .insert({
-            user_id: user.id,
-            name: values.name,
-            label: values.label,
             wallet_address: values.wallet_address,
             network: values.network,
+            name: values.name,
+            label: values.label,
+            user_id: user.id,
+            asset_id: "address_book",  // Using as a marker for address book entries
+            asset_name: "Contact",
+            asset_symbol: "CONTACT",
           });
         
         if (error) throw error;

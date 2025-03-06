@@ -8,6 +8,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isLoggedIn: boolean; // Added this property
   signUp: (email: string, password: string, userData?: { full_name?: string }) => Promise<{
     error: any | null;
     success: boolean;
@@ -99,6 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         session,
         loading,
+        isLoggedIn: !!user, // Add isLoggedIn property
         signUp,
         signIn,
         signOut

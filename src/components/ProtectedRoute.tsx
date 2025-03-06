@@ -1,13 +1,10 @@
 
 import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
-
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+// Remove the interface since we're using Outlet
+export const ProtectedRoute = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -23,5 +20,5 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     </div>;
   }
 
-  return user ? <>{children}</> : null;
+  return user ? <Outlet /> : null;
 };

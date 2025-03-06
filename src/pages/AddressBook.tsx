@@ -21,6 +21,9 @@ interface Contact {
   network: string;
   created_at: string;
   updated_at: string;
+  asset_id: string;
+  asset_name: string;
+  asset_symbol: string;
 }
 
 const AddressBook = () => {
@@ -43,7 +46,8 @@ const AddressBook = () => {
       const { data, error } = await supabase
         .from("asset_wallets")
         .select("*")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("asset_id", "address_book");
       
       if (error) {
         console.error("Error fetching contacts:", error);
