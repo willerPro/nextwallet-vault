@@ -13,6 +13,7 @@ import Send from "./pages/Send";
 import SendDetails from "./pages/SendDetails";
 import Settings from "./pages/Settings";
 import NodeSettings from "./pages/NodeSettings";
+import CustomNetwork from "./pages/CustomNetwork";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AddressBook from "./pages/AddressBook";
@@ -59,6 +60,7 @@ function App() {
           <Route path="/send/:id" element={<SendDetails />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/node-settings" element={<NodeSettings />} />
+          <Route path="/custom-network" element={<CustomNetwork />} />
           <Route path="/address-book" element={<AddressBook />} />
         </Route>
         

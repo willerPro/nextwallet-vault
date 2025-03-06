@@ -331,6 +331,39 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_networks: {
+        Row: {
+          chain_id: string
+          created_at: string
+          default_token: string
+          id: string
+          network_name: string
+          rpc_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chain_id: string
+          created_at?: string
+          default_token: string
+          id?: string
+          network_name: string
+          rpc_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chain_id?: string
+          created_at?: string
+          default_token?: string
+          id?: string
+          network_name?: string
+          rpc_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_profits: {
         Row: {
           bot_profit: number

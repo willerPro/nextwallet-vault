@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -54,6 +53,10 @@ const Settings = () => {
     navigate("/node-settings");
   };
 
+  const handleCustomNetworkClick = () => {
+    navigate("/custom-network");
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       <motion.header 
@@ -102,7 +105,10 @@ const Settings = () => {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
             
-            <div className="py-3 flex items-center justify-between">
+            <div 
+              className="py-3 flex items-center justify-between cursor-pointer"
+              onClick={handleCustomNetworkClick}
+            >
               <div className="flex items-center">
                 <Globe className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Custom Network</div>
