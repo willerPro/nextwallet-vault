@@ -174,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Here we use window.location to ensure a full page reload
       window.localStorage.setItem('otpVerificationState', JSON.stringify({
         email,
-        sessionId: data.session.id
+        sessionId: data.session.access_token // Changed from data.session.id to data.session.access_token
       }));
       
       navigate('/otp-verification');
