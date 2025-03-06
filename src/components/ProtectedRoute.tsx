@@ -14,7 +14,10 @@ export const ProtectedRoute = () => {
 
   useEffect(() => {
     const checkAuthentication = async () => {
-      if (!loading && user) {
+      // Skip if still loading or on OTP verification page
+      if (loading) return;
+      
+      if (user) {
         try {
           // Check if the user has a verified login
           const { data, error } = await supabase
@@ -36,7 +39,7 @@ export const ProtectedRoute = () => {
         } catch (error) {
           console.error("Error checking login verification:", error);
         }
-      } else if (!loading && !user && location.pathname !== '/otp-verification') {
+      } else {
         console.log("User not authenticated, redirecting to home");
         navigate('/', { replace: true });
       }

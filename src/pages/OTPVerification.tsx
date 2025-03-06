@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Input } from "@/components/ui/input";
@@ -15,19 +15,46 @@ const OTPVerification = () => {
   const [otp, setOtp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [email, setEmail] = useState("");
+  const [sessionId, setSessionId] = useState("");
+  const [tempSession, setTempSession] = useState<any>(null);
   const navigate = useNavigate();
-  const location = useLocation();
   const { setUser, setSession } = useAuth();
-  
-  // Get email and session from location state
-  const email = location.state?.email || "";
-  const tempSession = location.state?.session || null;
 
   useEffect(() => {
-    // Redirect if no email or session in state (user accessed page directly)
-    if (!email || !tempSession) {
-      console.log("Missing email or session. Redirecting to login.");
+    // Get email and session from localStorage
+    const storedState = localStorage.getItem('otpVerificationState');
+    console.log("Retrieved OTP verification state:", storedState);
+    
+    if (!storedState) {
+      console.log("No OTP verification state found. Redirecting to login.");
       toast.error("Invalid session. Please log in again.");
+      navigate("/");
+      return;
+    }
+
+    try {
+      const { email: storedEmail, sessionId: storedSessionId } = JSON.parse(storedState);
+      setEmail(storedEmail);
+      setSessionId(storedSessionId);
+      
+      // Get the actual session from Supabase
+      const fetchSession = async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setTempSession(data.session);
+          console.log("Retrieved session:", data.session.user.id);
+        } else {
+          console.log("No valid session found");
+          toast.error("Session expired. Please log in again.");
+          navigate("/");
+        }
+      };
+      
+      fetchSession();
+    } catch (error) {
+      console.error("Error parsing stored state:", error);
+      toast.error("Invalid session data. Please log in again.");
       navigate("/");
       return;
     }
@@ -48,10 +75,11 @@ const OTPVerification = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [email, navigate, tempSession]);
+  }, [navigate]);
 
   const handleSessionExpired = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem('otpVerificationState');
     toast.error("OTP verification time expired. Please log in again.");
     navigate("/");
   };
@@ -67,6 +95,12 @@ const OTPVerification = () => {
     
     if (!isValidOTPFormat(otp)) {
       toast.error("Please enter a valid 6-digit OTP code");
+      return;
+    }
+
+    if (!tempSession) {
+      toast.error("Session not found. Please log in again.");
+      navigate("/");
       return;
     }
 
@@ -112,6 +146,9 @@ const OTPVerification = () => {
       
       console.log("Authentication complete, redirecting to dashboard");
       
+      // Clean up localStorage
+      localStorage.removeItem('otpVerificationState');
+      
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error: any) {
@@ -127,7 +164,7 @@ const OTPVerification = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p>Redirecting to login...</p>
+          <p>Initializing verification page...</p>
         </div>
       </div>
     );

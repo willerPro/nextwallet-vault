@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -158,7 +159,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_id: data.user.id,
         user_email: email,
         otp,
-        expires_at: expiryTime.toISOString()
+        expires_at: expiryTime.toISOString(),
+        verified: false
       });
 
       if (otpError) {
@@ -169,13 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("OTP generated and stored, redirecting to verification page");
 
       // Send user to OTP verification page with temp session
-      navigate('/otp-verification', { 
-        state: { 
-          email,
-          session: data.session
-        },
-        replace: false // Use push instead of replace to ensure history is preserved
-      });
+      // Here we use window.location to ensure a full page reload
+      window.localStorage.setItem('otpVerificationState', JSON.stringify({
+        email,
+        sessionId: data.session.id
+      }));
+      
+      navigate('/otp-verification');
 
       // We don't set the session here, it will be set after OTP verification
       return { 
