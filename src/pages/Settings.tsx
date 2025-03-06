@@ -49,6 +49,10 @@ const Settings = () => {
   const handleAddressBookClick = () => {
     navigate("/address-book");
   };
+  
+  const handleNodeSettingsClick = () => {
+    navigate("/node-settings");
+  };
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
@@ -87,7 +91,10 @@ const Settings = () => {
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
             
-            <div className="py-3 flex items-center justify-between">
+            <div 
+              className="py-3 flex items-center justify-between cursor-pointer"
+              onClick={handleNodeSettingsClick}
+            >
               <div className="flex items-center">
                 <Server className="h-5 w-5 text-gold mr-3" />
                 <div className="font-medium">Node Settings</div>

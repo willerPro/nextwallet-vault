@@ -12,6 +12,7 @@ import Receive from "./pages/Receive";
 import Send from "./pages/Send";
 import SendDetails from "./pages/SendDetails";
 import Settings from "./pages/Settings";
+import NodeSettings from "./pages/NodeSettings";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AddressBook from "./pages/AddressBook";
@@ -57,6 +58,7 @@ function App() {
           <Route path="/send" element={<Send />} />
           <Route path="/send/:id" element={<SendDetails />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/node-settings" element={<NodeSettings />} />
           <Route path="/address-book" element={<AddressBook />} />
         </Route>
         
