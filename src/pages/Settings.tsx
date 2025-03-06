@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -195,7 +194,7 @@ const Settings = () => {
                 <div className="font-medium">About</div>
               </div>
               <div className="flex items-center">
-                <span className="text-muted-foreground mr-2">V4.8.6</span>
+                <span className="text-muted-foreground mr-2">V1.0.1</span>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>
             </div>

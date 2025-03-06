@@ -4,8 +4,45 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Bell, Shield } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
+import PinAuthentication from "@/components/PinAuthentication";
+import { toast } from "sonner";
 
 const ProfileSettings = () => {
+  const { biometricEnabled, toggleBiometricEnabled } = useAuth();
+  const [showPinAuth, setShowPinAuth] = useState(false);
+
+  const handleBiometricToggle = async () => {
+    if (!biometricEnabled) {
+      // When enabling biometrics, first verify with PIN
+      setShowPinAuth(true);
+    } else {
+      // When disabling, just toggle
+      await toggleBiometricEnabled();
+    }
+  };
+
+  const handlePinSuccess = async () => {
+    setShowPinAuth(false);
+    await toggleBiometricEnabled();
+    toast.success("Biometric authentication enabled");
+  };
+
+  const handlePinCancel = () => {
+    setShowPinAuth(false);
+  };
+
+  if (showPinAuth) {
+    return (
+      <PinAuthentication 
+        mode="verify" 
+        onSuccess={handlePinSuccess}
+        onCancel={handlePinCancel}
+      />
+    );
+  }
+
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -28,7 +65,11 @@ const ProfileSettings = () => {
             <Shield className="h-5 w-5 text-gold mr-3" />
             <Label htmlFor="biometrics">Biometric Authentication</Label>
           </div>
-          <Switch id="biometrics" />
+          <Switch 
+            id="biometrics" 
+            checked={biometricEnabled}
+            onCheckedChange={handleBiometricToggle}
+          />
         </div>
       </GlassCard>
     </motion.div>

@@ -4,10 +4,11 @@ import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChevronRight, Mail, LockKeyhole, UserPlus, Coins } from "lucide-react";
+import { ChevronRight, Mail, LockKeyhole, UserPlus, Coins, Fingerprint } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import PinAuthentication from "@/components/PinAuthentication";
 
 export function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +16,8 @@ export function AuthForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const { signIn, signUp } = useAuth();
+  const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+  const { signIn, signUp, biometricEnabled, authenticateWithBiometric } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +53,53 @@ export function AuthForm() {
   const toggleForm = () => {
     setIsLogin(!isLogin);
   };
+
+  const handleBiometricLogin = async () => {
+    const canProceed = await authenticateWithBiometric();
+    
+    if (canProceed) {
+      setShowBiometricAuth(true);
+    }
+  };
+
+  const handlePinSuccess = async () => {
+    setShowBiometricAuth(false);
+    setIsLoading(true);
+    try {
+      // Use the stored email from last login
+      const storedEmail = localStorage.getItem('lastLoginEmail');
+      if (!storedEmail) {
+        toast.error("No stored login credentials found");
+        return;
+      }
+
+      const { error, success } = await signIn(storedEmail, "biometric-auth-placeholder");
+      if (error) {
+        toast.error("Biometric verification failed");
+      } else if (success) {
+        toast.success("Successfully logged in with biometrics!");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Biometric login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowBiometricAuth(false);
+  };
+
+  // If showing biometric authentication, show PIN verification
+  if (showBiometricAuth) {
+    return (
+      <PinAuthentication
+        mode="verify"
+        onSuccess={handlePinSuccess}
+        onCancel={handlePinCancel}
+      />
+    );
+  }
 
   return (
     <motion.div
@@ -88,6 +137,20 @@ export function AuthForm() {
                 : "Fill in the form to create your wallet"}
             </p>
           </div>
+
+          {isLogin && biometricEnabled && (
+            <div className="mb-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 h-11 border-gold/30 hover:border-gold/60"
+                onClick={handleBiometricLogin}
+              >
+                <Fingerprint className="h-5 w-5 text-gold" />
+                <span>Sign In with Biometrics</span>
+              </Button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
@@ -127,7 +190,12 @@ export function AuthForm() {
                   className="pl-10 bg-background/40 border-muted focus:border-gold/50 h-10"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (isLogin) {
+                      localStorage.setItem('lastLoginEmail', e.target.value);
+                    }
+                  }}
                 />
               </div>
             </div>

@@ -8,6 +8,8 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   isLoggedIn: boolean;
+  biometricEnabled: boolean;
+  toggleBiometricEnabled: () => Promise<void>;
   signUp: (email: string, password: string, userData?: { full_name?: string }) => Promise<{
     error: any | null;
     success: boolean;
@@ -17,6 +19,7 @@ type AuthContextType = {
     success: boolean;
   }>;
   signOut: () => Promise<void>;
+  authenticateWithBiometric: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,10 +44,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
+    const storedBiometricEnabled = localStorage.getItem('biometricEnabled');
+    if (storedBiometricEnabled) {
+      setBiometricEnabled(storedBiometricEnabled === 'true');
+    }
+
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const toggleBiometricEnabled = async () => {
+    const newValue = !biometricEnabled;
+    
+    if (newValue) {
+      if (!window.PublicKeyCredential) {
+        toast.error("Your browser doesn't support biometric authentication");
+        return;
+      }
+      
+      try {
+        const available = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (!available) {
+          toast.error("Your device doesn't have biometric capabilities");
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking biometric support:", error);
+        toast.error("Failed to check biometric capability");
+        return;
+      }
+    }
+    
+    setBiometricEnabled(newValue);
+    localStorage.setItem('biometricEnabled', newValue.toString());
+  };
+
+  const authenticateWithBiometric = async (): Promise<boolean> => {
+    if (!biometricEnabled) {
+      return false;
+    }
+
+    try {
+      if (window.PublicKeyCredential) {
+        const available = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (!available) {
+          toast.error("Biometric authentication not available on this device");
+          return false;
+        }
+        
+        return true;
+      } else {
+        toast.error("Your browser doesn't support biometric authentication");
+        return false;
+      }
+    } catch (error) {
+      console.error("Biometric authentication error:", error);
+      toast.error("Biometric authentication failed");
+      return false;
+    }
+  };
 
   const signUp = async (email: string, password: string, userData?: { full_name?: string }) => {
     try {
@@ -95,9 +155,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         loading,
         isLoggedIn: !!user,
+        biometricEnabled,
+        toggleBiometricEnabled,
         signUp,
         signIn,
-        signOut
+        signOut,
+        authenticateWithBiometric
       }}
     >
       {children}
