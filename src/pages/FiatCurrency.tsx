@@ -44,8 +44,9 @@ const FiatCurrency = () => {
     queryFn: async () => {
       if (!user) return { currency_code: "USD", currency_symbol: "$" };
 
+      // Using type assertion to fix TypeScript error
       const { data, error } = await supabase
-        .from('user_settings')
+        .from('user_settings' as any)
         .select('currency_code, currency_symbol')
         .eq('user_id', user.id)
         .single();
@@ -69,8 +70,9 @@ const FiatCurrency = () => {
     mutationFn: async ({ code, symbol }: { code: string, symbol: string }) => {
       if (!user) throw new Error("User not authenticated");
 
+      // Using type assertion to fix TypeScript error
       const { data: existingSettings, error: fetchError } = await supabase
-        .from('user_settings')
+        .from('user_settings' as any)
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -82,7 +84,7 @@ const FiatCurrency = () => {
       if (existingSettings) {
         // Update existing record
         const { error } = await supabase
-          .from('user_settings')
+          .from('user_settings' as any)
           .update({ 
             currency_code: code, 
             currency_symbol: symbol,
@@ -94,7 +96,7 @@ const FiatCurrency = () => {
       } else {
         // Insert new record
         const { error } = await supabase
-          .from('user_settings')
+          .from('user_settings' as any)
           .insert({
             user_id: user.id,
             currency_code: code,

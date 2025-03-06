@@ -23,8 +23,9 @@ export const useCurrency = () => {
       if (!user) return defaultCurrency;
 
       try {
+        // We need to use a type assertion here as the table is new
         const { data, error } = await supabase
-          .from('user_settings')
+          .from('user_settings' as any)
           .select('currency_code, currency_symbol')
           .eq('user_id', user.id)
           .single();
@@ -39,8 +40,8 @@ export const useCurrency = () => {
         }
 
         return { 
-          code: data.currency_code || defaultCurrency.code, 
-          symbol: data.currency_symbol || defaultCurrency.symbol 
+          code: data?.currency_code || defaultCurrency.code, 
+          symbol: data?.currency_symbol || defaultCurrency.symbol 
         };
       } catch (err) {
         console.error("Error in currency hook:", err);
