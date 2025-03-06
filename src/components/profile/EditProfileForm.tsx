@@ -3,10 +3,10 @@ import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile } from "@/types/profile";
 import { useAuth } from "@/context/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 
 interface EditProfileFormProps {
   profile: UserProfile | null;
@@ -16,6 +16,7 @@ interface EditProfileFormProps {
 
 const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps) => {
   const { user } = useAuth();
+  const { updateProfile } = useProfile(user);
   
   const form = useForm({
     defaultValues: {
@@ -29,51 +30,20 @@ const EditProfileForm = ({ profile, setProfile, setOpen }: EditProfileFormProps)
   });
 
   const onSubmit = async (values: any) => {
-    if (!user) return;
+    if (!user || !profile) return;
     
     try {
-      // Use direct update instead of RPC
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          full_name: values.full_name,
-          phone_number: values.phone_number,
-          country: values.country,
-          city: values.city,
-          gender: values.gender,
-          date_of_birth: values.date_of_birth
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Also update in profiles table if it exists
-      try {
-        await supabase
-          .from('user_profiles')
-          .upsert({
-            id: user.id,
-            full_name: values.full_name,
-            phone_number: values.phone_number,
-            country: values.country,
-            city: values.city,
-            gender: values.gender,
-            date_of_birth: values.date_of_birth
-          });
-      } catch (profileError) {
-        console.error("Error updating profile table:", profileError);
-        // Non-blocking - we already updated the user metadata
-      }
-      
-      // Update local state
-      setProfile(prev => ({
-        ...prev!,
+      const updatedProfile: UserProfile = {
+        ...profile,
         full_name: values.full_name,
         phone_number: values.phone_number,
         country: values.country,
         city: values.city,
         gender: values.gender,
         date_of_birth: values.date_of_birth
-      }));
+      };
+      
+      await updateProfile(updatedProfile);
       
       toast.success("Profile updated successfully");
       setOpen(false);

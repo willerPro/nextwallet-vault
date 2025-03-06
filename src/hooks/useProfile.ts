@@ -59,9 +59,53 @@ export const useProfile = (user: User | null) => {
     }
   };
 
+  // Function to update profile in both user metadata and profile table
+  const updateProfile = async (updatedProfile: UserProfile) => {
+    if (!user) return;
+    
+    try {
+      // Update user metadata
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: updatedProfile.full_name,
+          phone_number: updatedProfile.phone_number,
+          country: updatedProfile.country,
+          city: updatedProfile.city,
+          gender: updatedProfile.gender,
+          date_of_birth: updatedProfile.date_of_birth
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Also update in profiles table
+      try {
+        await supabase
+          .from('user_profiles')
+          .upsert({
+            id: user.id,
+            full_name: updatedProfile.full_name,
+            phone_number: updatedProfile.phone_number,
+            country: updatedProfile.country,
+            city: updatedProfile.city,
+            gender: updatedProfile.gender,
+            date_of_birth: updatedProfile.date_of_birth
+          });
+      } catch (profileError) {
+        console.error("Error updating profile table:", profileError);
+      }
+      
+      // Update local state
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
   }, [user]);
 
-  return { profile, setProfile, loading, fetchProfile };
+  return { profile, setProfile, loading, fetchProfile, updateProfile };
 };

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 // Custom hooks
 import { useProfile } from "@/hooks/useProfile";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 // Components
 import ProfileHeader from "@/components/profile/ProfileHeader";
@@ -22,11 +23,28 @@ const Profile = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
-  const { profile, setProfile, loading } = useProfile(user);
+  const { profile, setProfile, loading, updateProfile } = useProfile(user);
+  const locationData = useGeolocation();
   
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+  
+  // Update profile with location data when available
+  useEffect(() => {
+    if (!locationData.loading && !locationData.error && profile && user) {
+      // Only update if current values are "Unknown" or empty
+      if (profile.country === "Unknown" || !profile.country) {
+        const updatedProfile = {
+          ...profile,
+          country: locationData.country,
+          city: locationData.city
+        };
+        
+        updateProfile(updatedProfile);
+      }
+    }
+  }, [locationData, profile, user]);
   
   const handleLogout = async () => {
     try {
