@@ -57,13 +57,13 @@ const SendDetails = () => {
         return null;
       }
       
-      // Transform the data to match the Asset interface
+      // Add balance and fiat_value for assets that don't have these fields
       return {
         id: data.id,
         asset_name: data.asset_name,
         asset_symbol: data.asset_symbol,
         balance: parseFloat(data.balance || "0"),
-        fiat_value: parseFloat(data.fiat_value || "0")
+        fiat_value: parseFloat(data.fiat_value || "0"),
       };
     },
     enabled: !!id,
@@ -86,8 +86,8 @@ const SendDetails = () => {
       }
       
       if (data) {
-        // Transform to match Contact interface
-        const contactsList: Contact[] = data.map((item: any) => ({
+        // Transform to match our local Contact interface
+        const contactsList: Contact[] = data.map((item) => ({
           id: item.id,
           name: item.asset_name || "",
           label: item.asset_symbol || "",

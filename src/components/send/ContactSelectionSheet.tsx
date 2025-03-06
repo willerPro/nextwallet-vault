@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+// Define Contact interface that matches SendDetails
 interface Contact {
   id: string;
   name: string;
@@ -12,11 +13,6 @@ interface Contact {
   wallet_address: string;
   network: string;
   user_id: string;
-  asset_id: string;
-  asset_name: string;
-  asset_symbol: string;
-  created_at: string;
-  updated_at: string;
 }
 
 interface ContactSelectionSheetProps {
