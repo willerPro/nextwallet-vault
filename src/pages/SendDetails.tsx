@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ContactSelectionSheet } from "@/components/send/ContactSelectionSheet";
 
 interface CryptoAsset {
   id: string;
@@ -23,6 +23,7 @@ interface CryptoAsset {
   balance: number;
 }
 
+// Simplified Contact interface to avoid deep type instantiation
 interface Contact {
   id: string;
   name: string;
@@ -53,7 +54,7 @@ const SendDetails = () => {
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user) return [] as Contact[];
       
       const { data, error } = await supabase
         .from("asset_wallets")
@@ -63,10 +64,10 @@ const SendDetails = () => {
       
       if (error) {
         console.error("Error fetching contacts:", error);
-        return [];
+        return [] as Contact[];
       }
       
-      return data as Contact[];
+      return (data || []) as Contact[];
     },
     enabled: !!user
   });
@@ -305,52 +306,13 @@ const SendDetails = () => {
         )}
       </div>
 
-      {/* Contacts Sheet */}
-      <Sheet open={isContactsSheetOpen} onOpenChange={setIsContactsSheetOpen}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Select Contact</SheetTitle>
-          </SheetHeader>
-          
-          <div className="py-6">
-            {contacts.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">No saved contacts</p>
-                <Button 
-                  variant="outline" 
-                  className="border-gold/20 text-gold hover:bg-gold/10"
-                  onClick={() => {
-                    setIsContactsSheetOpen(false);
-                    navigate("/address-book");
-                  }}
-                >
-                  Add New Contact
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {contacts.map((contact) => (
-                  <GlassCard
-                    key={contact.id}
-                    variant="dark"
-                    className="cursor-pointer hover:bg-muted/10"
-                    onClick={() => handleSelectContact(contact)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{contact.name}</h3>
-                        <span className="text-xs text-muted-foreground">{contact.label}</span>
-                        <div className="text-sm text-muted-foreground mt-1 break-all">{contact.wallet_address}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{contact.network}</div>
-                      </div>
-                    </div>
-                  </GlassCard>
-                ))}
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Contact Selection Sheet */}
+      <ContactSelectionSheet
+        open={isContactsSheetOpen}
+        onOpenChange={setIsContactsSheetOpen}
+        contacts={contacts}
+        onSelectContact={handleSelectContact}
+      />
     </div>
   );
 };
