@@ -9,12 +9,10 @@ export const useProfile = (user: User | null) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  // Add a state to track if we've already updated with geolocation
-  const [geoUpdated, setGeoUpdated] = useState(false);
   
   // Add state to prevent rate limit errors
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
-  const MIN_UPDATE_INTERVAL = 5000; // Minimum 5 seconds between updates
+  const MIN_UPDATE_INTERVAL = 10000; // Increase to 10 seconds to avoid rate limiting
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -70,9 +68,10 @@ export const useProfile = (user: User | null) => {
   const updateProfile = async (updatedProfile: UserProfile, showToast: boolean = true) => {
     if (!user || isUpdating) return;
     
-    // Implement rate limiting to prevent too many API calls
+    // Implement strict rate limiting to prevent too many API calls
     const now = Date.now();
     if (lastUpdateTime && now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
+      console.log(`Skipping update - too soon (${(now - lastUpdateTime) / 1000}s elapsed, need ${MIN_UPDATE_INTERVAL / 1000}s)`);
       if (showToast) {
         toast.warning("Please wait a moment before updating again");
       }
@@ -132,11 +131,6 @@ export const useProfile = (user: User | null) => {
       if (showToast) {
         toast.success("Profile updated successfully");
       }
-
-      // Mark geolocation update as complete if we're updating with location data
-      if (updatedProfile.country && updatedProfile.city && !showToast) {
-        setGeoUpdated(true);
-      }
     } catch (error) {
       console.error("Error updating profile:", error);
       if (showToast) {
@@ -148,7 +142,9 @@ export const useProfile = (user: User | null) => {
   };
 
   useEffect(() => {
-    fetchProfile();
+    if (user) {
+      fetchProfile();
+    }
   }, [user]);
 
   return { 
@@ -157,8 +153,6 @@ export const useProfile = (user: User | null) => {
     loading, 
     fetchProfile, 
     updateProfile, 
-    isUpdating, 
-    geoUpdated, 
-    setGeoUpdated 
+    isUpdating
   };
 };
