@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useInternetConnection } from '@/hooks/useInternetConnection';
@@ -12,29 +12,19 @@ export const ProtectedRoute = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isOnline = useInternetConnection();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
     const checkAuthentication = async () => {
       // Skip if still loading
       if (loading) return;
       
-      // Special case for OTP verification page
+      setIsCheckingAuth(true);
+      
+      // Special case for OTP verification page - don't redirect if already there
       if (location.pathname === '/otp-verification') {
-        const otpState = getOTPVerificationState();
-        const hasValidOtpState = otpState && isOTPVerificationStateValid();
-        
-        // If OTP verification state is valid, allow access
-        if (hasValidOtpState) {
-          console.log("Valid OTP verification state found, allowing access to OTP page");
-          return;
-        }
-        
-        // If on OTP page but no valid state and no user, redirect to login
-        if (!user) {
-          console.log("No valid OTP state or user, redirecting to login");
-          navigate('/', { replace: true });
-          return;
-        }
+        setIsCheckingAuth(false);
+        return;
       }
       
       // For all other protected routes
@@ -52,23 +42,25 @@ export const ProtectedRoute = () => {
           if (error || !data || data.length === 0) {
             console.log("No verified login found for user:", user.id);
             
-            // If on OTP page, don't sign out, just let them verify
+            // If not on OTP page already, redirect there
             if (location.pathname !== '/otp-verification') {
-              // Redirect to OTP verification if not there already
               navigate('/otp-verification', { replace: true });
             }
           }
+          setIsCheckingAuth(false);
         } catch (error) {
           console.error("Error checking login verification:", error);
+          setIsCheckingAuth(false);
         }
       } else {
         // If not authenticated and not on OTP page with valid state, redirect to home
-        if (location.pathname !== '/otp-verification' || 
-            !getOTPVerificationState() || 
-            !isOTPVerificationStateValid()) {
+        const hasValidOtpState = getOTPVerificationState() && isOTPVerificationStateValid();
+        
+        if (location.pathname !== '/otp-verification' || !hasValidOtpState) {
           console.log("User not authenticated, redirecting to home");
           navigate('/', { replace: true });
         }
+        setIsCheckingAuth(false);
       }
     };
 
@@ -79,16 +71,15 @@ export const ProtectedRoute = () => {
     return <OfflineFallback />;
   }
 
-  if (loading) {
+  if (loading || isCheckingAuth) {
     return <div className="min-h-screen flex items-center justify-center">
       <div className="animate-pulse text-gold">Loading...</div>
     </div>;
   }
 
-  // For OTP verification page, require either user or valid OTP state
+  // For OTP verification page, we don't need to check further
   if (location.pathname === '/otp-verification') {
-    const hasValidState = getOTPVerificationState() && isOTPVerificationStateValid();
-    return (user || hasValidState) ? <Outlet /> : null;
+    return <Outlet />;
   }
 
   // For all other protected routes, require user with verified login

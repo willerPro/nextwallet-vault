@@ -33,6 +33,7 @@ function App() {
   const navigate = useNavigate();
   const [isInitialRender, setIsInitialRender] = useState(true);
   const isOnline = useInternetConnection();
+  const [hasCheckedOTPState, setHasCheckedOTPState] = useState(false);
 
   useEffect(() => {
     // Prevent automatic redirection on initial render
@@ -41,15 +42,22 @@ function App() {
       return;
     }
 
+    // Skip if already on OTP verification page to prevent redirection loop
+    if (location.pathname === '/otp-verification') {
+      setHasCheckedOTPState(true);
+      return;
+    }
+
     // If there's a valid OTP verification state, redirect to the OTP verification page
     const otpState = getOTPVerificationState();
-    if (otpState && isOTPVerificationStateValid() && location.pathname !== '/otp-verification') {
+    if (otpState && isOTPVerificationStateValid() && !hasCheckedOTPState) {
+      setHasCheckedOTPState(true);
       navigate('/otp-verification');
       return;
     }
 
-    // If user is authenticated and on index or OTP page but has already verified, go to dashboard
-    if (isLoggedIn && (location.pathname === "/" || location.pathname === "/otp-verification")) {
+    // If user is authenticated and on index but has already verified, go to dashboard
+    if (isLoggedIn && location.pathname === "/" && hasCheckedOTPState) {
       // Check if user already has a verified login, then redirect to dashboard
       const checkVerifiedLogin = async () => {
         try {
@@ -76,7 +84,7 @@ function App() {
         checkVerifiedLogin();
       }
     }
-  }, [isLoggedIn, user, location.pathname, navigate, isInitialRender]);
+  }, [isLoggedIn, user, location.pathname, navigate, isInitialRender, hasCheckedOTPState]);
 
   // Check if the current route should display the bottom navigation
   const shouldShowBottomNav = () => {

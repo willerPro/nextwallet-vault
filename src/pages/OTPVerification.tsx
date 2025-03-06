@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -23,8 +24,15 @@ const OTPVerification = () => {
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
   const { verifyOTP, user, session } = useAuth();
+  const initializeRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializeRef.current) return;
+    initializeRef.current = true;
+    
+    console.log("OTP verification page loaded with email:", email);
+    
     // Check if there's a pending OTP verification
     const verificationState = getOTPVerificationState();
     
