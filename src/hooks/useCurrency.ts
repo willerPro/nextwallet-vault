@@ -23,9 +23,8 @@ export const useCurrency = () => {
       if (!user) return defaultCurrency;
 
       try {
-        // We need to use a type assertion here as the table is new
         const { data, error } = await supabase
-          .from('user_settings' as any)
+          .from('user_settings')
           .select('currency_code, currency_symbol')
           .eq('user_id', user.id)
           .single();

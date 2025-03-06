@@ -2262,6 +2262,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       virtual_cards: {
         Row: {
           address_line: string
