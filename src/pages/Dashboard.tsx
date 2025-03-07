@@ -8,7 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
-import InsertTransaction from "@/components/InsertTransaction";
 
 type Transaction = {
   id: string;
@@ -246,10 +245,6 @@ const Dashboard = () => {
             </GlassCard>
           )}
         </motion.div>
-      </div>
-
-      <div className="px-4 mt-6">
-        <InsertTransaction />
       </div>
     </div>
   );
