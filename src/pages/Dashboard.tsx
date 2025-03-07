@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
-import { InsertTransaction } from "@/components/ui/InsertTransaction";
+import { InsertTransaction } from "@/components/InsertTransaction";
 
 type Transaction = {
   id: string;
