@@ -199,7 +199,8 @@ const ArbitragePage = () => {
           user_id: user?.id,
           wallet_id: selectedWallet,
           transactions_per_second: tpsValue,
-          is_active: true
+          is_active: true,
+          started_at: new Date().toISOString()
         })
         .select('id')
         .single();

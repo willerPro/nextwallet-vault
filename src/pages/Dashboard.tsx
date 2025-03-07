@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -26,6 +25,15 @@ type Wallet = {
   created_at: string;
 };
 
+type ArbitrageOperation = {
+  id: string;
+  user_id: string;
+  wallet_id: string;
+  transactions_per_second: number;
+  is_active: boolean;
+  started_at: string;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -36,6 +44,8 @@ const Dashboard = () => {
   const [totalBalance, setTotalBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [wallets, setWallets] = useState<Wallet[] | null>(null);
+  const [activeArbitrage, setActiveArbitrage] = useState<ArbitrageOperation | null>(null);
+  const [isLoadingArbitrage, setIsLoadingArbitrage] = useState(true);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -75,11 +85,9 @@ const Dashboard = () => {
         } else if (data && data.length > 0) {
           setWallets(data as Wallet[]);
           
-          // Calculate total balance across all wallets
           const total = data.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
           setTotalBalance(total);
         } else {
-          // If no wallets, set balance to 0
           setTotalBalance(0);
         }
       } finally {
@@ -87,8 +95,31 @@ const Dashboard = () => {
       }
     };
 
+    const fetchArbitrageStatus = async () => {
+      if (!user) return;
+      
+      setIsLoadingArbitrage(true);
+      try {
+        const { data, error } = await supabase
+          .from('arbitrage_operations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching arbitrage operations:", error);
+        } else if (data) {
+          setActiveArbitrage(data as ArbitrageOperation);
+        }
+      } finally {
+        setIsLoadingArbitrage(false);
+      }
+    };
+
     fetchTransactions();
     fetchWallets();
+    fetchArbitrageStatus();
   }, [user]);
 
   const toggleBalanceVisibility = () => {
@@ -175,6 +206,34 @@ const Dashboard = () => {
             </div>
           </GlassCard>
         </motion.div>
+
+        {activeArbitrage && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
+          >
+            <GlassCard className="bg-black border border-primary/30 p-4">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-sm font-medium text-primary">Active Arbitrage Bot</h2>
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground mb-2">
+                Arbitrage bot running at {activeArbitrage.transactions_per_second} TPS
+              </p>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="w-full bg-transparent border border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => navigate('/arbitrage')}
+              >
+                Manage Bot
+              </Button>
+            </GlassCard>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ y: 20, opacity: 0 }}
