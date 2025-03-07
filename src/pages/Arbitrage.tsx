@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
-import { CircleDot, Wallet, Play, Pause, Gauge } from 'lucide-react';
+import { CircleDot, Wallet, Play, Pause, Gauge, Info } from 'lucide-react';
 
 // Transaction per second options
 const TPS_OPTIONS = [100, 1000, 10000, "MAX"];
@@ -35,6 +34,7 @@ const ArbitragePage = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [originalBalance, setOriginalBalance] = useState(0);
   const incrementInterval = useRef<NodeJS.Timeout | null>(null);
+  const [activeOperations, setActiveOperations] = useState<any[]>([]);
 
   // Load countdown from localStorage on component mount
   useEffect(() => {
@@ -67,28 +67,49 @@ const ArbitragePage = () => {
     if (user) {
       const checkActiveOperations = async () => {
         try {
-          const { data, error } = await supabase
+          // First, check for the user's own active operation
+          const { data: userOperation, error: userOpError } = await supabase
             .from('arbitrage_operations')
             .select('id, wallet_id, transactions_per_second, started_at')
             .eq('user_id', user.id)
             .eq('is_active', true)
             .single();
           
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error checking active operations:', error);
-            return;
+          if (userOpError && userOpError.code !== 'PGRST116') {
+            console.error('Error checking active operations:', userOpError);
           }
           
-          if (data) {
+          if (userOperation) {
             // User has an active operation
-            setOperationId(data.id);
-            localStorage.setItem(OPERATION_ID_STORAGE_KEY, data.id);
-            setSelectedWallet(data.wallet_id);
-            setSelectedTPS(data.transactions_per_second);
+            setOperationId(userOperation.id);
+            localStorage.setItem(OPERATION_ID_STORAGE_KEY, userOperation.id);
+            setSelectedWallet(userOperation.wallet_id);
+            setSelectedTPS(userOperation.transactions_per_second);
             setIsRunning(true);
             
             // Fetch wallet balance
-            fetchWalletBalance(data.wallet_id);
+            fetchWalletBalance(userOperation.wallet_id);
+          }
+          
+          // Get all active operations for display
+          const { data: allOperations, error: allOpError } = await supabase
+            .from('arbitrage_operations')
+            .select(`
+              id, 
+              started_at, 
+              transactions_per_second,
+              wallets (name, balance)
+            `)
+            .eq('is_active', true)
+            .order('started_at', { ascending: false });
+          
+          if (allOpError) {
+            console.error('Error fetching all operations:', allOpError);
+            return;
+          }
+          
+          if (allOperations) {
+            setActiveOperations(allOperations);
           }
         } catch (error) {
           console.error('Error in check active operations:', error);
@@ -344,9 +365,53 @@ const ArbitragePage = () => {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Format date to a readable string
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  };
+
   return (
     <div className="container px-4 py-8 mx-auto">
       <h1 className="text-3xl font-bold mb-6">Arbitrage Trading Bot</h1>
+      
+      {/* Active Operations Section */}
+      {activeOperations.length > 0 && (
+        <div className="bg-primary/10 rounded-lg p-4 mb-6 border border-primary/30">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Active Arbitrage Operations</h2>
+          </div>
+          
+          <div className="space-y-3">
+            {activeOperations.map((operation) => (
+              <div key={operation.id} className="bg-background rounded p-3 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <div>
+                    <p className="text-sm font-medium">
+                      Wallet: {operation.wallets?.name || 'Unknown'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Started: {formatDate(operation.started_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full w-2 h-2 bg-green-500 animate-pulse"></span>
+                    <span className="text-sm font-medium">
+                      Running at {operation.transactions_per_second} TPS
+                    </span>
+                    {operation.wallets?.balance && (
+                      <span className="text-sm font-medium">
+                        {formatCurrency(operation.wallets.balance)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {/* Animated Dot Section */}
       <div className="flex flex-col items-center justify-center mb-8">
