@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -9,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
+import { InsertTransaction } from "@/components/ui/InsertTransaction";
 
 type Transaction = {
   id: string;
@@ -111,7 +111,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col pb-24">
+    <div className="min-h-screen w-full pb-20">
       {/* User Profile Header */}
       <motion.div
         className="p-4"
@@ -255,6 +255,11 @@ const Dashboard = () => {
             </GlassCard>
           )}
         </motion.div>
+      </div>
+
+      {/* Add the InsertTransaction component */}
+      <div className="px-4 mt-6">
+        <InsertTransaction />
       </div>
     </div>
   );
