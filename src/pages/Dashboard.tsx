@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -17,6 +18,14 @@ type Transaction = {
   created_at: string;
 };
 
+type Wallet = {
+  id: string;
+  user_id: string;
+  balance: number;
+  name: string;
+  created_at: string;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -26,6 +35,7 @@ const Dashboard = () => {
   const [hideBalance, setHideBalance] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
+  const [wallets, setWallets] = useState<Wallet[] | null>(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -50,33 +60,27 @@ const Dashboard = () => {
       }
     };
 
-    const fetchBalance = async () => {
+    const fetchWallets = async () => {
       if (!user) return;
 
       setIsLoadingBalance(true);
       try {
         const { data, error } = await supabase
-          .from('user_balances')
-          .select('total_balance')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .from('wallets')
+          .select('*')
+          .eq('user_id', user.id);
 
         if (error) {
-          console.error("Error fetching balance:", error);
-        } else if (data) {
-          setTotalBalance(data.total_balance || 0);
+          console.error("Error fetching wallets:", error);
+        } else if (data && data.length > 0) {
+          setWallets(data as Wallet[]);
+          
+          // Calculate total balance across all wallets
+          const total = data.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
+          setTotalBalance(total);
         } else {
-          const { data: walletData, error: walletError } = await supabase
-            .from('wallets')
-            .select('balance')
-            .eq('user_id', user.id);
-
-          if (walletError) {
-            console.error("Error fetching wallet balance:", walletError);
-          } else if (walletData && walletData.length > 0) {
-            const total = walletData.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
-            setTotalBalance(total);
-          }
+          // If no wallets, set balance to 0
+          setTotalBalance(0);
         }
       } finally {
         setIsLoadingBalance(false);
@@ -84,7 +88,7 @@ const Dashboard = () => {
     };
 
     fetchTransactions();
-    fetchBalance();
+    fetchWallets();
   }, [user]);
 
   const toggleBalanceVisibility = () => {
