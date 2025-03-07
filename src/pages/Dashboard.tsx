@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
-import { InsertTransaction } from "@/components/InsertTransaction";
+import InsertTransaction from "@/components/InsertTransaction";
 
 type Transaction = {
   id: string;
@@ -56,7 +56,6 @@ const Dashboard = () => {
 
       setIsLoadingBalance(true);
       try {
-        // Fetch user balance from the wallet table
         const { data, error } = await supabase
           .from('user_balances')
           .select('total_balance')
@@ -68,7 +67,6 @@ const Dashboard = () => {
         } else if (data) {
           setTotalBalance(data.total_balance || 0);
         } else {
-          // Fallback to wallets table if user_balances doesn't exist or has no data
           const { data: walletData, error: walletError } = await supabase
             .from('wallets')
             .select('balance')
@@ -77,7 +75,6 @@ const Dashboard = () => {
           if (walletError) {
             console.error("Error fetching wallet balance:", walletError);
           } else if (walletData && walletData.length > 0) {
-            // Sum up all wallet balances
             const total = walletData.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
             setTotalBalance(total);
           }
@@ -95,12 +92,10 @@ const Dashboard = () => {
     setHideBalance(!hideBalance);
   };
 
-  // Function to format balance display
   const formatBalance = (value: number) => {
     return hideBalance ? "••••••" : `$${value.toLocaleString()}`;
   };
 
-  // Function to get user initials for avatar
   const getInitials = () => {
     if (!profile) return '?';
     const nameParts = profile.full_name.split(' ');
@@ -112,7 +107,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen w-full pb-20">
-      {/* User Profile Header */}
       <motion.div
         className="p-4"
         initial={{ y: -20, opacity: 0 }}
@@ -133,7 +127,6 @@ const Dashboard = () => {
       </motion.div>
 
       <div className="flex-1 px-4 space-y-5">
-        {/* Balance Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -157,7 +150,6 @@ const Dashboard = () => {
               <div className="text-2xl font-bold my-1 text-white">{formatBalance(totalBalance)}</div>
             )}
             
-            {/* Send & Withdraw Buttons */}
             <div className="flex gap-2 mt-3">
               <Button 
                 variant="outline" 
@@ -181,7 +173,6 @@ const Dashboard = () => {
           </GlassCard>
         </motion.div>
 
-        {/* Recent Transactions */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -257,7 +248,6 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
-      {/* Add the InsertTransaction component */}
       <div className="px-4 mt-6">
         <InsertTransaction />
       </div>
