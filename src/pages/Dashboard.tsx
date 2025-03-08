@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, ArrowDown, Eye, EyeOff, Send, Upload } from "lucide-react";
+import { ArrowUp, ArrowDown, Eye, EyeOff, Send, Upload, TrendingUp } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -13,7 +13,7 @@ import { TransactionDetailsModal, TransactionDetailsProps } from "@/components/T
 
 type Transaction = {
   id: string;
-  type: 'send' | 'receive';
+  type: 'send' | 'receive' | 'buy' | 'sell';
   amount: number;
   coin_symbol: string;
   created_at: string;
@@ -55,6 +55,9 @@ const Dashboard = () => {
   const [isLoadingArbitrage, setIsLoadingArbitrage] = useState(true);
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetailsProps | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [totalReceived, setTotalReceived] = useState(0);
+  const [profit, setProfit] = useState(0);
+  const [isLoadingProfit, setIsLoadingProfit] = useState(true);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -126,10 +129,47 @@ const Dashboard = () => {
       }
     };
 
+    const fetchProfitData = async () => {
+      if (!user) return;
+      
+      setIsLoadingProfit(true);
+      try {
+        // Fetch all buy and receive transactions
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('user_id', user.id)
+          .in('type', ['buy', 'receive']);
+
+        if (error) {
+          console.error("Error fetching profit data:", error);
+        } else if (data) {
+          // Calculate total amount received/bought
+          const totalAmount = data.reduce((sum, tx) => {
+            if (tx.status === 'completed') {
+              return sum + (typeof tx.value_usd === 'number' ? tx.value_usd : Number(tx.value_usd) || 0);
+            }
+            return sum;
+          }, 0);
+          
+          setTotalReceived(totalAmount);
+        }
+      } finally {
+        setIsLoadingProfit(false);
+      }
+    };
+
     fetchTransactions();
     fetchWallets();
     fetchArbitrageStatus();
+    fetchProfitData();
   }, [user]);
+
+  // Calculate profit whenever total balance or total received changes
+  useEffect(() => {
+    const calculatedProfit = totalBalance - totalReceived;
+    setProfit(calculatedProfit);
+  }, [totalBalance, totalReceived]);
 
   const toggleBalanceVisibility = () => {
     setHideBalance(!hideBalance);
@@ -201,6 +241,16 @@ const Dashboard = () => {
               <div className="text-2xl font-bold my-1 animate-pulse">Loading...</div>
             ) : (
               <div className="text-2xl font-bold my-1 text-white">{formatBalance(totalBalance)}</div>
+            )}
+            
+            {/* Profit/Loss Display */}
+            {!isLoadingProfit && (
+              <div className="flex items-center mb-2">
+                <TrendingUp className={`h-4 w-4 mr-1 ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+                <span className={`text-xs font-medium ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {hideBalance ? "••••••" : `${profit >= 0 ? '+' : ''}$${profit.toLocaleString()} profit`}
+                </span>
+              </div>
             )}
             
             <div className="flex gap-2 mt-3">
@@ -295,22 +345,26 @@ const Dashboard = () => {
                   onClick={() => handleTransactionClick(tx)}
                 >
                   <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full ${tx.type === 'send' ? 'bg-black border border-red-500/30' : 'bg-black border border-green-500/30'} flex items-center justify-center mr-3`}>
-                      {tx.type === 'send' ? (
+                    <div className={`w-8 h-8 rounded-full ${tx.type === 'send' || tx.type === 'sell' ? 'bg-black border border-red-500/30' : 'bg-black border border-green-500/30'} flex items-center justify-center mr-3`}>
+                      {tx.type === 'send' || tx.type === 'sell' ? (
                         <ArrowUp className="h-4 w-4 text-red-500" />
                       ) : (
                         <ArrowDown className="h-4 w-4 text-green-500" />
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{tx.type === 'send' ? 'Sent' : 'Received'} {tx.coin_symbol}</p>
+                      <p className="text-sm font-medium">
+                        {tx.type === 'send' ? 'Sent' : 
+                         tx.type === 'receive' ? 'Received' :
+                         tx.type === 'buy' ? 'Bought' : 'Sold'} {tx.coin_symbol}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(tx.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <p className={`text-sm font-semibold ${tx.type === 'send' ? 'text-red-500' : 'text-green-500'}`}>
-                    {tx.type === 'send' ? '-' : '+'}{tx.amount?.toString()}
+                  <p className={`text-sm font-semibold ${tx.type === 'send' || tx.type === 'sell' ? 'text-red-500' : 'text-green-500'}`}>
+                    {tx.type === 'send' || tx.type === 'sell' ? '-' : '+'}{tx.amount?.toString()}
                   </p>
                 </GlassCard>
               ))}
