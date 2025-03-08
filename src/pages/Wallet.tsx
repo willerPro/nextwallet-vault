@@ -10,11 +10,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import CreateWalletFlow from "@/components/CreateWalletFlow";
 import { useNavigate } from "react-router-dom";
+import { useCurrency } from "@/hooks/useCurrency";
 
 type Wallet = {
   id: string;
   name: string;
   created_at: string;
+  balance: number;
 };
 
 const WalletPage = () => {
@@ -22,7 +24,9 @@ const WalletPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { formatCurrency } = useCurrency();
   const [showCreateFlow, setShowCreateFlow] = useState(false);
+  const [totalBalance, setTotalBalance] = useState(0);
 
   // Fetch user wallets
   const { data: wallets, isLoading: isLoadingWallets } = useQuery({
@@ -50,6 +54,16 @@ const WalletPage = () => {
     },
     enabled: !!user && !loading,
   });
+
+  // Calculate total balance whenever wallets data changes
+  useEffect(() => {
+    if (wallets && wallets.length > 0) {
+      const sum = wallets.reduce((total, wallet) => total + (wallet.balance || 0), 0);
+      setTotalBalance(sum);
+    } else {
+      setTotalBalance(0);
+    }
+  }, [wallets]);
 
   // Create a new wallet
   const createWalletMutation = useMutation({
@@ -99,9 +113,9 @@ const WalletPage = () => {
             >
               <GlassCard variant="gold" className="text-center">
                 <h2 className="text-sm font-medium text-muted-foreground mb-1">Total Balance</h2>
-                <div className="text-3xl font-bold mb-1">$0.00</div>
+                <div className="text-3xl font-bold mb-1">{formatCurrency(totalBalance)}</div>
                 <div className="text-sm text-muted-foreground flex items-center justify-center">
-                  <span>No recent activity</span>
+                  <span>{wallets?.length ? `Across ${wallets.length} wallet${wallets.length > 1 ? 's' : ''}` : 'No wallets yet'}</span>
                 </div>
               </GlassCard>
             </motion.div>
@@ -153,7 +167,7 @@ const WalletPage = () => {
                       </div>
                       <div className="flex items-center">
                         <div className="text-right mr-3">
-                          <div className="font-medium">$0.00</div>
+                          <div className="font-medium">{formatCurrency(wallet.balance || 0)}</div>
                           <div className="text-sm text-muted-foreground">
                             Available
                           </div>
