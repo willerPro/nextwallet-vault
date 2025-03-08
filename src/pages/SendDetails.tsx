@@ -13,7 +13,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-// Define schema for form validation
 const sendFormSchema = z.object({
   amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: "Amount must be a positive number",
@@ -52,14 +51,12 @@ const SendDetails = () => {
 
   useEffect(() => {
     setLoading(true);
-    // Get asset from location state
     if (location.state?.asset) {
       setAsset(location.state.asset);
       setLoading(false);
       return;
     }
     
-    // Fallback if no state - navigate back
     navigate("/send");
   }, [id, location.state, navigate]);
   
@@ -75,7 +72,6 @@ const SendDetails = () => {
       const amount = parseFloat(values.amount);
       const toAddress = values.address;
       
-      // Fetch user's default wallet
       const { data: wallets, error: walletError } = await supabase
         .from("wallets")
         .select("id")
@@ -86,7 +82,6 @@ const SendDetails = () => {
         throw walletError;
       }
       
-      // If no wallet found, create a new one
       let walletId: string;
       if (wallets && wallets.length > 0) {
         walletId = wallets[0].id;
@@ -108,13 +103,12 @@ const SendDetails = () => {
         walletId = newWallet.id;
       }
       
-      // Create transaction record
       const { data, error } = await supabase
         .from("transactions")
         .insert({
           user_id: user.id,
           wallet_id: walletId,
-          type: "sent",
+          type: "received",
           amount: amount,
           value_usd: amount * (asset.price || 0),
           coin_symbol: asset.symbol,
@@ -128,11 +122,11 @@ const SendDetails = () => {
         throw error;
       }
       
-      toast.success(`Successfully sent ${amount} ${asset.symbol}`);
+      toast.success(`Successfully received ${amount} ${asset.symbol}`);
       navigate("/wallet");
     } catch (error: any) {
-      console.error("Error sending transaction:", error);
-      toast.error("Failed to send. Please try again: " + (error.message || "Unknown error"));
+      console.error("Error creating transaction:", error);
+      toast.error("Failed to process. Please try again: " + (error.message || "Unknown error"));
     } finally {
       setSending(false);
     }
@@ -140,7 +134,6 @@ const SendDetails = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      {/* Header */}
       <motion.header 
         className="p-4 flex items-center"
         initial={{ y: -20, opacity: 0 }}
@@ -153,7 +146,6 @@ const SendDetails = () => {
         <h1 className="text-xl font-bold">Send {asset?.symbol}</h1>
       </motion.header>
 
-      {/* Main content */}
       <div className="flex-1 px-4 space-y-6">
         {loading ? (
           <GlassCard variant="dark" className="h-32 animate-pulse">
