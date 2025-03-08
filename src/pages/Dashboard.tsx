@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -8,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
+import { TransactionDetailsModal, TransactionDetailsProps } from "@/components/TransactionDetailsModal";
 
 type Transaction = {
   id: string;
@@ -15,6 +17,11 @@ type Transaction = {
   amount: number;
   coin_symbol: string;
   created_at: string;
+  value_usd?: number | string;
+  from_address?: string;
+  to_address?: string;
+  status: "pending" | "completed" | "failed";
+  tx_hash?: string;
 };
 
 type Wallet = {
@@ -46,6 +53,8 @@ const Dashboard = () => {
   const [wallets, setWallets] = useState<Wallet[] | null>(null);
   const [activeArbitrage, setActiveArbitrage] = useState<ArbitrageOperation | null>(null);
   const [isLoadingArbitrage, setIsLoadingArbitrage] = useState(true);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetailsProps | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -137,6 +146,16 @@ const Dashboard = () => {
       return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
     }
     return profile.full_name.substring(0, 2).toUpperCase();
+  };
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction as TransactionDetailsProps);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedTransaction(null);
   };
 
   return (
@@ -272,7 +291,8 @@ const Dashboard = () => {
               {recentTransactions.slice(0, 3).map((tx, index) => (
                 <GlassCard 
                   key={index} 
-                  className="p-3 flex justify-between items-center bg-black border border-gold/10"
+                  className="p-3 flex justify-between items-center bg-black border border-gold/10 cursor-pointer hover:border-gold/30 transition-colors"
+                  onClick={() => handleTransactionClick(tx)}
                 >
                   <div className="flex items-center">
                     <div className={`w-8 h-8 rounded-full ${tx.type === 'send' ? 'bg-black border border-red-500/30' : 'bg-black border border-green-500/30'} flex items-center justify-center mr-3`}>
@@ -309,6 +329,12 @@ const Dashboard = () => {
           )}
         </motion.div>
       </div>
+
+      <TransactionDetailsModal 
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 };
