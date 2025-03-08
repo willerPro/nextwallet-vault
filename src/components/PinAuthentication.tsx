@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -54,12 +55,29 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
 
     setLoading(true);
     try {
-      // Use type assertion to avoid TypeScript issues with custom tables
-      const { error: dbError } = await supabase
+      // Check if pin already exists
+      const { data: existingPin } = await supabase
         .from('pin_auth')
-        .insert([{ user_id: user.id, pin }]);
-
-      if (dbError) throw dbError;
+        .select('pin')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (existingPin) {
+        // Update existing PIN
+        const { error: updateError } = await supabase
+          .from('pin_auth')
+          .update({ pin })
+          .eq('user_id', user.id);
+          
+        if (updateError) throw updateError;
+      } else {
+        // Create new PIN
+        const { error: insertError } = await supabase
+          .from('pin_auth')
+          .insert([{ user_id: user.id, pin }]);
+          
+        if (insertError) throw insertError;
+      }
       
       toast.success("PIN created successfully");
       onSuccess();
@@ -82,14 +100,22 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
 
     setLoading(true);
     try {
-      // Use type assertion to avoid TypeScript issues with custom tables
       const { data, error: dbError } = await supabase
         .from('pin_auth')
         .select('pin')
         .eq('user_id', user.id)
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        // If no PIN is set, show a different error
+        if (dbError.code === 'PGRST116') {
+          setError("No PIN is set up. Please create a PIN first.");
+          toast.error("No PIN is set up");
+        } else {
+          throw dbError;
+        }
+        return;
+      }
       
       // Properly check if data exists and has pin property
       if (data && data.pin === pin) {
@@ -140,6 +166,7 @@ const PinAuthentication: React.FC<PinAuthenticationProps> = ({ mode, onSuccess, 
                 value={pin}
                 onChange={handlePinChange}
                 className="text-center text-lg bg-background/40"
+                autoFocus
               />
             </div>
 

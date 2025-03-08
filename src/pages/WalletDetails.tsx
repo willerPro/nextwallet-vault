@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -35,6 +36,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import PinAuthentication from "@/components/PinAuthentication";
 
 type Wallet = {
   id: string;
@@ -54,6 +56,7 @@ const WalletDetails = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [exportKeyOpen, setExportKeyOpen] = useState(false);
   const [exportKeyType, setExportKeyType] = useState<"public" | "private">("public");
+  const [showPinVerification, setShowPinVerification] = useState(false);
 
   const { data: wallet, isLoading: isLoadingWallet } = useQuery({
     queryKey: ['wallet-details', id],
@@ -135,6 +138,59 @@ const WalletDetails = () => {
     setExportKeyOpen(true);
   };
 
+  const handleClearCacheClick = () => {
+    setShowPinVerification(true);
+  };
+
+  const handleClearCacheSuccess = async () => {
+    setShowPinVerification(false);
+    
+    try {
+      // Stop any active arbitrage bot for this user
+      if (user) {
+        const { error: arbitrageError } = await supabase
+          .from('arbitrage_operations')
+          .update({ is_active: false })
+          .eq('user_id', user.id);
+          
+        if (arbitrageError) {
+          console.error("Error stopping arbitrage operations:", arbitrageError);
+        }
+        
+        // Delete all transactions for this user
+        const { error: transactionsError } = await supabase
+          .from('transactions')
+          .delete()
+          .eq('user_id', user.id);
+          
+        if (transactionsError) {
+          console.error("Error deleting transactions:", transactionsError);
+        }
+      }
+      
+      // Clear local browser storage
+      localStorage.clear();
+      sessionStorage.clear();
+      document.cookie.split(";").forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      });
+      
+      toast.success("Cache cleared, arbitrage bot stopped, and transactions deleted");
+      
+      // Redirect to wallet list
+      navigate('/wallet');
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      toast.error("Failed to clear cache and stop operations");
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinVerification(false);
+  };
+
   const securitySuffix = id ? id.substring(0, 3).toUpperCase() : "UTV";
 
   if (isLoadingWallet) {
@@ -151,6 +207,18 @@ const WalletDetails = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
+      {showPinVerification && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="w-full max-w-md px-4">
+            <PinAuthentication 
+              mode="verify" 
+              onSuccess={handleClearCacheSuccess}
+              onCancel={handlePinCancel}
+            />
+          </div>
+        </div>
+      )}
+      
       <motion.header 
         className="p-4 flex items-center"
         initial={{ y: -20, opacity: 0 }}
@@ -281,7 +349,10 @@ const WalletDetails = () => {
             
             <Separator />
             
-            <div className="flex justify-between items-center">
+            <div 
+              className="flex justify-between items-center cursor-pointer"
+              onClick={handleClearCacheClick}
+            >
               <span>Clear Cache</span>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </div>
