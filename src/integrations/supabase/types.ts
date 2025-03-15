@@ -297,6 +297,47 @@ export type Database = {
           },
         ]
       }
+      contract_api_settings: {
+        Row: {
+          api_key: string
+          api_secret: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+          wallet_id: string | null
+        }
+        Insert: {
+          api_key: string
+          api_secret: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          wallet_id?: string | null
+        }
+        Update: {
+          api_key?: string
+          api_secret?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_api_settings_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           api_key: string | null

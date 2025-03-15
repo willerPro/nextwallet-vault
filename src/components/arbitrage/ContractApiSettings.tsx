@@ -14,6 +14,17 @@ interface ContractApiSettingsProps {
   wallets: any[];
 }
 
+interface ApiSettings {
+  id?: string;
+  user_id?: string;
+  api_key: string;
+  api_secret: string;
+  wallet_id: string | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -32,9 +43,9 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
             .from('contract_api_settings')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
             
-          if (error && error.code !== 'PGRST116') {
+          if (error) {
             console.error('Error fetching API settings:', error);
             return;
           }
@@ -72,16 +83,17 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
     }
     
     try {
+      const settingsData: ApiSettings = {
+        user_id: user.id,
+        api_key: apiKey,
+        api_secret: apiSecret,
+        wallet_id: selectedWallet,
+        is_active: isActive
+      };
+
       const { error } = await supabase
         .from('contract_api_settings')
-        .upsert({
-          user_id: user.id,
-          api_key: apiKey,
-          api_secret: apiSecret,
-          wallet_id: selectedWallet,
-          is_active: isActive,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(settingsData);
         
       if (error) {
         console.error('Error saving API settings:', error);
@@ -107,16 +119,17 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
     const newActiveState = !isActive;
     
     try {
+      const settingsData: ApiSettings = {
+        user_id: user?.id,
+        api_key: apiKey,
+        api_secret: apiSecret,
+        wallet_id: selectedWallet,
+        is_active: newActiveState
+      };
+
       const { error } = await supabase
         .from('contract_api_settings')
-        .upsert({
-          user_id: user?.id,
-          api_key: apiKey,
-          api_secret: apiSecret,
-          wallet_id: selectedWallet,
-          is_active: newActiveState,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(settingsData);
         
       if (error) {
         console.error('Error updating bot activation:', error);
