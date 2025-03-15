@@ -131,6 +131,36 @@ export type Database = {
         }
         Relationships: []
       }
+      assets: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          price: number
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          price?: number
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          price?: number
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       binary_signal: {
         Row: {
           Action: string | null
@@ -527,6 +557,36 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          done: boolean
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          done?: boolean
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          done?: boolean
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           amount: number
@@ -559,6 +619,42 @@ export type Database = {
           start_date?: string
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hostings: {
+        Row: {
+          cost: number
+          created_at: string
+          id: string
+          link: string | null
+          name: string
+          provider: string
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string
+          id?: string
+          link?: string | null
+          name: string
+          provider?: string
+          status?: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string
+          id?: string
+          link?: string | null
+          name?: string
+          provider?: string
+          status?: string
+          type?: string
           user_id?: string
         }
         Relationships: []
@@ -629,6 +725,42 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      investors: {
+        Row: {
+          amount: number
+          created_at: string
+          duration: string
+          email: string
+          id: string
+          name: string
+          return_promised: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          duration: string
+          email: string
+          id?: string
+          name: string
+          return_promised: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          duration?: string
+          email?: string
+          id?: string
+          name?: string
+          return_promised?: number
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1963,6 +2095,33 @@ export type Database = {
           },
         ]
       }
+      todos: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           created_at: string
@@ -2107,6 +2266,33 @@ export type Database = {
           id?: string
           recipient_id?: string
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      updates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useCurrency } from '@/hooks/useCurrency';
 import { toast } from 'sonner';
 import { CircleDot, Wallet, Play, Pause, Gauge, Info } from 'lucide-react';
+import ContractApiSettings from '@/components/arbitrage/ContractApiSettings';
 
 // Transaction per second options
 const TPS_OPTIONS = [100, 1000, 10000, "MAX"];
@@ -526,6 +527,9 @@ const ArbitragePage = () => {
           </Button>
         )}
       </div>
+      
+      {/* Contract API Settings Section */}
+      {wallets.length > 0 && <ContractApiSettings wallets={wallets} />}
       
       {/* Information Section - Made Smaller */}
       <div className="mt-6">
