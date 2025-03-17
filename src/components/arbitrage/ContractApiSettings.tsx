@@ -14,9 +14,10 @@ interface ContractApiSettingsProps {
   wallets: any[];
 }
 
+// Updated interface to match the database schema
 interface ApiSettings {
   id?: string;
-  user_id?: string;
+  user_id: string; // Changed from optional to required
   api_key: string;
   api_secret: string;
   wallet_id: string | null;
@@ -116,11 +117,16 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
       return;
     }
     
+    if (!user) {
+      toast.error("You must be logged in to activate the bot");
+      return;
+    }
+    
     const newActiveState = !isActive;
     
     try {
       const settingsData: ApiSettings = {
-        user_id: user?.id,
+        user_id: user.id, // Ensure user.id is always defined
         api_key: apiKey,
         api_secret: apiSecret,
         wallet_id: selectedWallet,
