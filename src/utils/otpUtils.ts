@@ -122,7 +122,7 @@ export const generateTOTPSecret = (email: string, issuer: string = 'CryptoWallet
     algorithm: 'SHA1',
     digits: 6,
     period: 30,
-    secret: OTPAuth.Secret.generate(20) // Generate a secret key
+    secret: OTPAuth.Secret.random(20) // Fix: use random() instead of generate()
   });
 
   return {
