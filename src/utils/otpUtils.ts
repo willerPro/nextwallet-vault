@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for OTP generation and verification
  */
@@ -122,7 +123,7 @@ export const generateTOTPSecret = (email: string, issuer: string = 'CryptoWallet
     algorithm: 'SHA1',
     digits: 6,
     period: 30,
-    secret: OTPAuth.Secret.random(20) // Fix: use random() instead of generate()
+    secret: OTPAuth.Secret.generate() // Use the generate method without arguments
   });
 
   return {
