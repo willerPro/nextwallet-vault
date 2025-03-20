@@ -1,9 +1,14 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { generateOTP, storeOTPVerificationState } from '@/utils/otpUtils';
+import { 
+  generateTOTPSecret, 
+  storeOTPVerificationState, 
+  verifyTOTP 
+} from '@/utils/otpUtils';
 
 type AuthContextType = {
   user: User | null;
@@ -24,7 +29,7 @@ type AuthContextType = {
   authenticateWithBiometric: () => Promise<boolean>;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
-  verifyOTP: (otp: string) => Promise<{
+  verifyGoogleAuth: (token: string, secret?: string) => Promise<{
     error: any | null;
     success: boolean;
   }>;
@@ -147,68 +152,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error, success: false };
       }
 
-      console.log("Sign in successful, generating OTP");
+      console.log("Sign in successful, initializing Google Authenticator");
       
-      // Delete any old unused OTPs for this user
-      const { error: deleteError } = await supabase
-        .from('logins')
-        .delete()
+      // Check if user has TOTP set up
+      const { data: authSettings, error: settingsError } = await supabase
+        .from('user_auth_settings')
+        .select('*')
         .eq('user_id', data.user.id)
-        .eq('verified', false);
+        .maybeSingle();
         
-      if (deleteError) {
-        console.error("Error deleting old OTPs:", deleteError);
-        // Continue with the flow even if deletion fails
-      } else {
-        console.log("Old unverified OTPs deleted successfully");
+      let totpSecret: string;
+        
+      if (settingsError) {
+        console.error("Error fetching auth settings:", settingsError);
+        return { error: settingsError, success: false };
       }
       
-      // Generate OTP and save it to the logins table
-      const otp = generateOTP(6);
-      
-      // Calculate expiry time - 10 minutes from now
-      const expiryTime = new Date();
-      expiryTime.setMinutes(expiryTime.getMinutes() + 10);
-      
-      // Store OTP and session info in logins table with explicit expires_at
-      const { error: otpError } = await supabase.from('logins').insert({
-        user_id: data.user.id,
-        user_email: email,
-        otp,
-        expires_at: expiryTime.toISOString(),
-        verified: false
-      });
-
-      if (otpError) {
-        console.error("Error saving OTP:", otpError);
-        return { error: otpError, success: false };
-      }
-      
-      // Send OTP data to webhook
-      try {
-        const webhookUrl = "https://signal7888.app.n8n.cloud/webhook-test/";
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: email,
-            otp: otp,
-            timestamp: new Date().toISOString(),
-            userId: data.user.id
-          })
+      if (!authSettings || !authSettings.totp_secret) {
+        // First login or TOTP not set up yet - generate new secret
+        console.log("No TOTP secret found, generating new one");
+        
+        // Generate TOTP secret
+        const { secret, uri } = generateTOTPSecret(email);
+        totpSecret = secret;
+        
+        // Store TOTP data in user_auth_settings table
+        const { error: insertError } = await supabase.from('user_auth_settings').upsert({
+          user_id: data.user.id,
+          user_email: email,
+          totp_secret: secret,
+          totp_enabled: false,
+          updated_at: new Date().toISOString()
         });
-        console.log("OTP data sent to webhook successfully");
-      } catch (webhookError) {
-        console.error("Error sending OTP data to webhook:", webhookError);
-        // Continue with the flow even if webhook fails
-      }
-      
-      console.log("OTP generated and stored, redirecting to verification page");
 
-      // Store verification state in localStorage
-      storeOTPVerificationState(email, data.session.access_token);
+        if (insertError) {
+          console.error("Error saving TOTP settings:", insertError);
+          return { error: insertError, success: false };
+        }
+        
+        console.log("TOTP secret generated and stored, redirecting to verification page for setup");
+        
+        // Store verification state with the secret for QR code generation
+        storeOTPVerificationState(email, data.session.access_token, secret);
+        
+      } else {
+        // User already has TOTP set up
+        console.log("TOTP secret found, redirecting to verification page");
+        totpSecret = authSettings.totp_secret;
+        
+        // Store verification state without the secret (no setup needed)
+        storeOTPVerificationState(email, data.session.access_token, totpSecret);
+      }
       
       // Set session and user state
       setSession(data.session);
@@ -228,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const verifyOTP = async (otp: string) => {
+  const verifyGoogleAuth = async (token: string, secret?: string) => {
     try {
       // Check if we already have a user from the sign-in process
       const currentUser = user || (session ? session.user : null);
@@ -236,33 +230,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!currentUser) {
         return { error: "No active session", success: false };
       }
-      
-      // Check if OTP is valid
-      const { data, error } = await supabase
-        .from("logins")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .eq("otp", otp)
-        .eq("verified", false)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
 
-      if (error || !data) {
-        console.error("OTP verification error:", error);
-        return { error: "Invalid or expired OTP code", success: false };
+      if (!secret) {
+        // Try to get the secret from database
+        const { data, error } = await supabase
+          .from('user_auth_settings')
+          .select('totp_secret')
+          .eq('user_id', currentUser.id)
+          .maybeSingle();
+
+        if (error || !data || !data.totp_secret) {
+          console.error("Error fetching TOTP secret:", error);
+          return { error: "Unable to verify authentication", success: false };
+        }
+        
+        secret = data.totp_secret;
       }
-
-      // Mark OTP as verified
+      
+      // Verify the TOTP token
+      const isValid = verifyTOTP(token, secret);
+      
+      if (!isValid) {
+        return { error: "Invalid authentication code", success: false };
+      }
+      
+      // Mark TOTP as enabled if not already
       await supabase
-        .from("logins")
-        .update({ verified: true })
-        .eq("id", data.id);
+        .from('user_auth_settings')
+        .update({ 
+          totp_enabled: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', currentUser.id);
 
       return { error: null, success: true };
     } catch (error) {
-      console.error("OTP verification error:", error);
+      console.error("TOTP verification error:", error);
       return { error, success: false };
     }
   };
@@ -287,7 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authenticateWithBiometric,
         setUser,
         setSession,
-        verifyOTP
+        verifyGoogleAuth
       }}
     >
       {children}
