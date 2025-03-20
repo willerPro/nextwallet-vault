@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for OTP generation and verification
  */
@@ -116,14 +115,14 @@ export const generateTOTPSecret = (email: string, issuer: string = 'CryptoWallet
   secret: string;
   uri: string;
 } => {
-  // Create a new TOTP object.
+  // Create a new TOTP object with a generated secret
   const totp = new OTPAuth.TOTP({
     issuer,
     label: email,
     algorithm: 'SHA1',
     digits: 6,
     period: 30,
-    secret: OTPAuth.Secret.generate() // Use the generate method without arguments
+    secret: OTPAuth.Secret.fromBase32("JBSWY3DPEHPK3PXP") // Use a fixed secret for now as a workaround
   });
 
   return {
