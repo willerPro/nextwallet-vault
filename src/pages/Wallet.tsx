@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { WalletIcon, Plus, ArrowRight, ArrowsRightLeft } from "lucide-react";
+import { WalletIcon, Plus, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import CreateWalletFlow from "@/components/CreateWalletFlow";
 import { useNavigate } from "react-router-dom";
 import { useCurrency } from "@/hooks/useCurrency";
-import { TransferWallet } from "@/components/TransferWallet";
 
 type Wallet = {
   id: string;
@@ -27,7 +26,6 @@ const WalletPage = () => {
   const queryClient = useQueryClient();
   const { formatCurrency } = useCurrency();
   const [showCreateFlow, setShowCreateFlow] = useState(false);
-  const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
 
   // Fetch user wallets
@@ -86,10 +84,6 @@ const WalletPage = () => {
     navigate(`/wallet/${walletId}`);
   };
 
-  const handleTransferSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['wallets'] });
-  };
-
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       {/* Header */}
@@ -134,29 +128,16 @@ const WalletPage = () => {
             >
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-bold">Your Wallets</h2>
-                <div className="flex space-x-2">
-                  {wallets && wallets.length >= 2 && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="border-gold/20 text-foreground hover:bg-gold/10"
-                      onClick={() => setShowTransferDialog(true)}
-                    >
-                      <ArrowsRightLeft className="h-4 w-4 mr-2" />
-                      Transfer
-                    </Button>
-                  )}
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-gold/20 text-foreground hover:bg-gold/10"
-                    onClick={() => createWalletMutation.mutate()}
-                    disabled={createWalletMutation.isPending}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Wallet
-                  </Button>
-                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="border-gold/20 text-foreground hover:bg-gold/10"
+                  onClick={() => createWalletMutation.mutate()}
+                  disabled={createWalletMutation.isPending}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Wallet
+                </Button>
               </div>
               
               <div className="space-y-3">
@@ -214,13 +195,6 @@ const WalletPage = () => {
           </>
         )}
       </div>
-
-      {/* Transfer Dialog */}
-      <TransferWallet 
-        open={showTransferDialog} 
-        onOpenChange={setShowTransferDialog}
-        onSuccess={handleTransferSuccess}
-      />
     </div>
   );
 };

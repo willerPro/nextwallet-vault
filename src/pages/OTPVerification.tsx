@@ -12,30 +12,26 @@ import {
   getOTPVerificationState, 
   clearOTPVerificationState, 
   isOTPVerificationStateValid,
-  sendOTPVerificationStatusToWebhook,
-  verifyTOTP,
-  generateQRCode
+  sendOTPVerificationStatusToWebhook
 } from "@/utils/otpUtils";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { QrCode } from "lucide-react";
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const [email, setEmail] = useState("");
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [showQrCode, setShowQrCode] = useState(false);
-  const [setupMode, setSetupMode] = useState(false);
   const navigate = useNavigate();
-  const { verifyGoogleAuth, user, session } = useAuth();
+  const { verifyOTP, user, session } = useAuth();
   const initializeRef = useRef(false);
 
   useEffect(() => {
     // Prevent multiple initializations
     if (initializeRef.current) return;
     initializeRef.current = true;
+    
+    console.log("OTP verification page loaded with email:", email);
     
     // Check if there's a pending OTP verification
     const verificationState = getOTPVerificationState();
@@ -50,13 +46,6 @@ const OTPVerification = () => {
 
     setEmail(verificationState.email);
     console.log("OTP verification page loaded with email:", verificationState.email);
-
-    // If there's a TOTP secret in the state, we're in setup mode
-    if (verificationState.secret) {
-      setSetupMode(true);
-      // Generate QR code from the secret
-      fetchQrCode(verificationState.secret, verificationState.email);
-    }
 
     // Get session if it doesn't exist but we have a token
     const fetchUserSession = async () => {
@@ -96,21 +85,9 @@ const OTPVerification = () => {
     return () => clearInterval(timer);
   }, [navigate, user, session]);
 
-  const fetchQrCode = async (secret: string, userEmail: string) => {
-    try {
-      // Create URI for QR code
-      const uri = `otpauth://totp/CryptoWallet:${userEmail}?secret=${secret}&issuer=CryptoWallet&algorithm=SHA1&digits=6&period=30`;
-      const qrCode = await generateQRCode(uri);
-      setQrCodeUrl(qrCode);
-    } catch (error) {
-      console.error("Error generating QR code:", error);
-      toast.error("Failed to generate QR code for Google Authenticator");
-    }
-  };
-
   const handleSessionExpired = () => {
     clearOTPVerificationState();
-    toast.error("Verification time expired. Please log in again.");
+    toast.error("OTP verification time expired. Please log in again.");
     navigate("/");
   };
 
@@ -124,14 +101,14 @@ const OTPVerification = () => {
     e.preventDefault();
     
     if (!isValidOTPFormat(otp)) {
-      toast.error("Please enter a valid 6-digit authentication code");
+      toast.error("Please enter a valid 6-digit OTP code");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Get the verification state which contains the user ID and secret
+      // Get the verification state which contains the user ID
       const verificationState = getOTPVerificationState();
       if (!verificationState) {
         toast.error("Session expired. Please login again.");
@@ -139,8 +116,8 @@ const OTPVerification = () => {
         return;
       }
       
-      // Verify TOTP
-      const { error, success } = await verifyGoogleAuth(otp, verificationState.secret);
+      // Verify OTP
+      const { error, success } = await verifyOTP(otp);
       
       // Send verification status to webhook
       if (user) {
@@ -153,13 +130,13 @@ const OTPVerification = () => {
       }
       
       if (!success) {
-        toast.error(error || "Failed to verify authentication code");
+        toast.error(error || "Failed to verify OTP");
         setIsSubmitting(false);
         return;
       }
 
-      // TOTP verified successfully
-      toast.success("Authentication successful");
+      // OTP verified successfully
+      toast.success("OTP verification successful");
       
       // Clean up localStorage
       clearOTPVerificationState();
@@ -167,8 +144,8 @@ const OTPVerification = () => {
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Authentication verification error:", error);
-      toast.error(error.message || "Failed to verify authentication code");
+      console.error("OTP verification error:", error);
+      toast.error(error.message || "Failed to verify OTP");
     } finally {
       setIsSubmitting(false);
     }
@@ -223,43 +200,14 @@ const OTPVerification = () => {
                   Two-Factor Authentication
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                  {setupMode 
-                    ? "Scan the QR code with Google Authenticator and enter the code shown" 
-                    : "Enter the code from your Google Authenticator app to continue"}
+                  An OTP code has been sent to your email. Enter it below to continue.
                 </p>
               </div>
-
-              {setupMode && qrCodeUrl && (
-                <div className="mb-6 flex flex-col items-center">
-                  <Button 
-                    variant="outline" 
-                    className="mb-4"
-                    onClick={() => setShowQrCode(!showQrCode)}
-                  >
-                    <QrCode className="mr-2 h-4 w-4" />
-                    {showQrCode ? "Hide QR Code" : "Show QR Code"}
-                  </Button>
-                  
-                  {showQrCode && (
-                    <div className="bg-white p-2 rounded-lg mb-4">
-                      <img 
-                        src={qrCodeUrl} 
-                        alt="Google Authenticator QR Code" 
-                        className="w-48 h-48" 
-                      />
-                    </div>
-                  )}
-                  
-                  <p className="text-sm text-muted-foreground">
-                    Scan this QR code with the Google Authenticator app to set up your account
-                  </p>
-                </div>
-              )}
 
               <form onSubmit={handleVerify} className="space-y-6">
                 <div className="space-y-2">
                   <label htmlFor="otp" className="block text-sm font-medium">
-                    Enter Authentication Code
+                    Enter OTP Code
                   </label>
                   <Input
                     id="otp"
@@ -284,19 +232,19 @@ const OTPVerification = () => {
                   className="w-full bg-gradient-to-r from-gold-dark via-gold to-gold-light text-primary-foreground h-11"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Verifying..." : "Verify Code"}
+                  {isSubmitting ? "Verifying..." : "Verify OTP"}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Having trouble?{" "}
+                  Didn't receive the code?{" "}
                   <button
                     type="button"
                     className="text-gold hover:text-gold-light font-medium transition-colors"
                     onClick={() => {
                       clearOTPVerificationState();
-                      toast.error("Please sign in again to reset two-factor authentication");
+                      toast.error("Please sign in again to request a new OTP");
                       navigate("/");
                     }}
                   >

@@ -2369,36 +2369,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_auth_settings: {
-        Row: {
-          created_at: string
-          id: string
-          totp_enabled: boolean | null
-          totp_secret: string
-          updated_at: string
-          user_email: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          totp_enabled?: boolean | null
-          totp_secret: string
-          updated_at?: string
-          user_email: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          totp_enabled?: boolean | null
-          totp_secret?: string
-          updated_at?: string
-          user_email?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_balances: {
         Row: {
           created_at: string

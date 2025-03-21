@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChevronRight, Mail, LockKeyhole, UserPlus, Coins, Fingerprint, Shield } from "lucide-react";
+import { ChevronRight, Mail, LockKeyhole, UserPlus, Coins, Fingerprint } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -33,7 +33,7 @@ export function AuthForm() {
         if (error) {
           toast.error(error.message || "Failed to sign in");
         } else if (success) {
-          toast.info("Please verify using Google Authenticator");
+          toast.info("Please enter the OTP code sent to your email");
           // Explicitly navigate to OTP verification page
           navigate('/otp-verification');
         }
@@ -138,12 +138,6 @@ export function AuthForm() {
                 ? "Enter your credentials to access your account"
                 : "Fill in the form to create your wallet"}
             </p>
-            {isLogin && (
-              <div className="mt-2 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-green-400 mr-1" />
-                <span className="text-xs text-muted-foreground">Protected with Google Authenticator</span>
-              </div>
-            )}
           </div>
 
           {isLogin && biometricEnabled && (

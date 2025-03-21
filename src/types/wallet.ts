@@ -24,20 +24,3 @@ export interface Contact {
   updated_at?: string;
   user_id?: string;
 }
-
-export interface Transaction {
-  id: string;
-  user_id: string;
-  wallet_id: string;
-  type: "sent" | "received" | "swap" | "buy" | "sell";
-  amount: number;
-  value_usd: number;
-  coin_symbol: string;
-  from_address?: string;
-  to_address?: string;
-  status: "pending" | "completed" | "failed";
-  created_at: string;
-  updated_at?: string;
-  tx_hash?: string;
-  fee?: number;
-}

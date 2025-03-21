@@ -1,8 +1,7 @@
+
 /**
  * Utility functions for OTP generation and verification
  */
-import * as OTPAuth from 'otpauth';
-import QRCode from 'qrcode';
 
 /**
  * Generates a random numeric OTP code of the specified length
@@ -25,12 +24,11 @@ export const isValidOTPFormat = (otp: string, length: number = 6): boolean => {
 /**
  * Store OTP verification data in localStorage
  */
-export const storeOTPVerificationState = (email: string, sessionToken: string, secret?: string): void => {
+export const storeOTPVerificationState = (email: string, sessionToken: string): void => {
   console.log("Storing OTP verification state for email:", email);
   localStorage.setItem('otpVerificationState', JSON.stringify({
     email,
     sessionToken,
-    secret,
     timestamp: Date.now()
   }));
 };
@@ -38,12 +36,7 @@ export const storeOTPVerificationState = (email: string, sessionToken: string, s
 /**
  * Get OTP verification data from localStorage
  */
-export const getOTPVerificationState = (): { 
-  email: string; 
-  sessionToken: string; 
-  timestamp: number;
-  secret?: string;
-} | null => {
+export const getOTPVerificationState = (): { email: string; sessionToken: string; timestamp: number } | null => {
   const state = localStorage.getItem('otpVerificationState');
   if (!state) return null;
   
@@ -95,7 +88,6 @@ export const sendOTPVerificationStatusToWebhook = async (
         userId,
         success,
         otpEntered,
-        authMethod: 'google-authenticator',
         action: 'verification',
         timestamp: new Date().toISOString()
       })
@@ -103,68 +95,5 @@ export const sendOTPVerificationStatusToWebhook = async (
     console.log("OTP verification status sent to webhook successfully");
   } catch (error) {
     console.error("Error sending OTP verification status to webhook:", error);
-  }
-};
-
-// Google Authenticator (TOTP) functions
-
-/**
- * Generate a new TOTP secret for a user
- */
-export const generateTOTPSecret = (email: string, issuer: string = 'CryptoWallet'): {
-  secret: string;
-  uri: string;
-} => {
-  // Create a new TOTP object with a generated secret
-  const totp = new OTPAuth.TOTP({
-    issuer,
-    label: email,
-    algorithm: 'SHA1',
-    digits: 6,
-    period: 30,
-    secret: OTPAuth.Secret.fromBase32("JBSWY3DPEHPK3PXP") // Use a fixed secret for now as a workaround
-  });
-
-  return {
-    secret: totp.secret.base32,
-    uri: totp.toString()
-  };
-};
-
-/**
- * Generate a QR code from a TOTP URI
- */
-export const generateQRCode = async (uri: string): Promise<string> => {
-  try {
-    return await QRCode.toDataURL(uri);
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    throw error;
-  }
-};
-
-/**
- * Verify a TOTP token
- */
-export const verifyTOTP = (token: string, secret: string): boolean => {
-  try {
-    const totp = new OTPAuth.TOTP({
-      issuer: 'CryptoWallet',
-      label: 'user',
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-      secret: secret
-    });
-
-    // Verify the token
-    const delta = totp.validate({ token });
-    
-    // delta is null if the token is invalid
-    // Otherwise, it's the time step difference between the client and server
-    return delta !== null;
-  } catch (error) {
-    console.error('Error verifying TOTP:', error);
-    return false;
   }
 };
