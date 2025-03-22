@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { WalletIcon, Plus, ArrowRight } from "lucide-react";
+import { WalletIcon, Plus, ArrowRight, ArrowRightLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import CreateWalletFlow from "@/components/CreateWalletFlow";
 import { useNavigate } from "react-router-dom";
 import { useCurrency } from "@/hooks/useCurrency";
+import TransferWallet from "@/components/TransferWallet";
 
 type Wallet = {
   id: string;
@@ -27,8 +27,9 @@ const WalletPage = () => {
   const { formatCurrency } = useCurrency();
   const [showCreateFlow, setShowCreateFlow] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [showTransferFlow, setShowTransferFlow] = useState(false);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
 
-  // Fetch user wallets
   const { data: wallets, isLoading: isLoadingWallets } = useQuery({
     queryKey: ['wallets'],
     queryFn: async () => {
@@ -55,7 +56,6 @@ const WalletPage = () => {
     enabled: !!user && !loading,
   });
 
-  // Calculate total balance whenever wallets data changes
   useEffect(() => {
     if (wallets && wallets.length > 0) {
       const sum = wallets.reduce((total, wallet) => total + (wallet.balance || 0), 0);
@@ -65,12 +65,10 @@ const WalletPage = () => {
     }
   }, [wallets]);
 
-  // Create a new wallet
   const createWalletMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not authenticated");
       
-      // Show the create wallet flow instead of direct creation
       setShowCreateFlow(true);
       return null;
     },
@@ -84,9 +82,14 @@ const WalletPage = () => {
     navigate(`/wallet/${walletId}`);
   };
 
+  const handleTransferClick = (walletId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedWalletId(walletId);
+    setShowTransferFlow(true);
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
-      {/* Header */}
       <motion.header 
         className="p-4 flex items-center"
         initial={{ y: -20, opacity: 0 }}
@@ -99,13 +102,19 @@ const WalletPage = () => {
         </div>
       </motion.header>
 
-      {/* Main content */}
       <div className="flex-1 px-4 space-y-6">
         {showCreateFlow ? (
           <CreateWalletFlow onComplete={() => setShowCreateFlow(false)} onCancel={() => setShowCreateFlow(false)} />
+        ) : showTransferFlow && selectedWalletId ? (
+          <TransferWallet 
+            currentWalletId={selectedWalletId} 
+            onClose={() => {
+              setShowTransferFlow(false);
+              setSelectedWalletId(null);
+            }} 
+          />
         ) : (
           <>
-            {/* Balance card */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -120,7 +129,6 @@ const WalletPage = () => {
               </GlassCard>
             </motion.div>
 
-            {/* Wallets */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -172,7 +180,17 @@ const WalletPage = () => {
                             Available
                           </div>
                         </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 rounded-full hover:bg-gold/10"
+                            onClick={(e) => handleTransferClick(wallet.id, e)}
+                          >
+                            <ArrowRightLeft className="h-4 w-4 text-gold" />
+                          </Button>
+                          <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                        </div>
                       </div>
                     </GlassCard>
                   ))
