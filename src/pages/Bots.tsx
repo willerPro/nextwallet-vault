@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,14 +9,29 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { ThirdPartyApplication } from '@/types/wallet';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
 
 const Bots = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [botToToggle, setBotToToggle] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Fetch wallets for passing to components
-  const { data: wallets = [] } = useQuery({
+  const { data: wallets = [], isLoading: walletsLoading } = useQuery({
     queryKey: ['wallets', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -34,7 +49,7 @@ const Bots = () => {
   });
   
   // Fetch third-party applications
-  const { data: applications = [] } = useQuery({
+  const { data: applications = [], refetch: refetchApps } = useQuery({
     queryKey: ['applications', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -59,6 +74,7 @@ const Bots = () => {
       type: 'system',
       is_active: false,
       income: 0,
+      wallet_id: null,
     },
     {
       id: 'arbitrage',
@@ -66,6 +82,7 @@ const Bots = () => {
       type: 'system',
       is_active: false,
       income: 0,
+      wallet_id: null,
     },
     ...applications.map((app: ThirdPartyApplication) => ({
       id: app.id,
@@ -73,11 +90,81 @@ const Bots = () => {
       type: 'third-party',
       is_active: app.is_active || false,
       income: 0, // This would be fetched from a separate table in a real implementation
+      wallet_id: app.wallet_id || null,
     })),
   ];
 
   const handleBotClick = (botId: string) => {
     navigate(`/bots/${botId}`);
+  };
+
+  const handleToggleBot = async () => {
+    if (!botToToggle || !user) return;
+    
+    setIsConnecting(true);
+    const bot = allBots.find(b => b.id === botToToggle);
+    
+    if (!bot) {
+      setIsConnecting(false);
+      return;
+    }
+    
+    try {
+      const newStatus = !bot.is_active;
+      const action = newStatus ? 'connected' : 'disconnected';
+      
+      if (bot.type === 'third-party') {
+        // Update third-party application
+        const { error } = await supabase
+          .from('third_party_applications')
+          .update({ is_active: newStatus })
+          .eq('id', bot.id)
+          .eq('user_id', user.id);
+          
+        if (error) {
+          throw new Error(error.message);
+        }
+      } else if (bot.id === 'contract-api') {
+        // Update contract API settings
+        const { error } = await supabase
+          .from('contract_api_settings')
+          .update({ is_active: newStatus })
+          .eq('user_id', user.id);
+          
+        if (error) {
+          throw new Error(error.message);
+        }
+      } else if (bot.id === 'arbitrage') {
+        // Update arbitrage operations
+        const { error } = await supabase
+          .from('arbitrage_operations')
+          .update({
+            is_active: newStatus,
+            ...(newStatus ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
+          })
+          .eq('user_id', user.id);
+          
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+      
+      await refetchApps();
+      toast.success(`Bot successfully ${action}`);
+    } catch (error) {
+      console.error('Error toggling bot status:', error);
+      toast.error('Failed to update bot status');
+    } finally {
+      setIsConnecting(false);
+      setIsDialogOpen(false);
+      setBotToToggle(null);
+    }
+  };
+
+  // Find wallet details for a bot
+  const getWalletDetails = (walletId: string | null) => {
+    if (!walletId) return null;
+    return wallets.find(w => w.id === walletId);
   };
 
   return (
@@ -94,37 +181,69 @@ const Bots = () => {
       </header>
 
       <div className="space-y-3">
-        {allBots.map((bot) => (
-          <Card 
-            key={bot.id} 
-            className="p-4 hover:bg-secondary/10 transition-colors cursor-pointer"
-            onClick={() => handleBotClick(bot.id)}
-          >
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-medium">{bot.name}</h3>
-                <span className={`text-xs ${bot.is_active ? 'text-green-500' : 'text-yellow-500'}`}>
-                  {bot.is_active ? 'Running' : 'Stopped'}
-                </span>
+        {allBots.map((bot) => {
+          const walletDetails = getWalletDetails(bot.wallet_id);
+          return (
+            <Card 
+              key={bot.id} 
+              className="p-4 hover:bg-secondary/10 transition-colors cursor-pointer"
+              onClick={() => handleBotClick(bot.id)}
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium">{bot.name}</h3>
+                  <span className={`text-xs ${bot.is_active ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {bot.is_active ? 'Running' : 'Stopped'}
+                  </span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-muted-foreground">Income</span>
+                  <span className="font-medium">
+                    {walletDetails ? `$${walletDetails.balance.toFixed(2)}` : `$${bot.income.toFixed(2)}`}
+                  </span>
+                  <AlertDialog open={isDialogOpen && botToToggle === bot.id} onOpenChange={setIsDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2 text-xs h-7 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBotToToggle(bot.id);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        {bot.is_active ? 'Disconnect' : 'Connect'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {bot.is_active ? 'Disconnect Bot' : 'Connect Bot'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {bot.is_active 
+                            ? `Are you sure you want to disconnect ${bot.name}? This will stop all trading activities from this bot.`
+                            : `Are you sure you want to connect ${bot.name}? This will allow this bot to perform trading activities.`
+                          }
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setBotToToggle(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={handleToggleBot} 
+                          disabled={isConnecting}
+                        >
+                          {bot.is_active ? 'Disconnect' : 'Connect'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
-              <div className="flex flex-col items-end">
-                <span className="text-xs text-muted-foreground">Income</span>
-                <span className="font-medium">${bot.income.toFixed(2)}</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2 text-xs h-7 px-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle disconnect logic here
-                  }}
-                >
-                  Disconnect
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
       <AddThirdPartyModal 
