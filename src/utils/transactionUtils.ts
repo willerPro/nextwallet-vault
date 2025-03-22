@@ -52,7 +52,7 @@ export const transferBetweenWallets = async ({
       return null;
     }
 
-    // Start a transaction
+    // Start a transaction using rpc
     const { data, error } = await supabase.rpc('transfer_between_wallets', {
       p_from_wallet_id: fromWalletId,
       p_to_wallet_id: toWalletId,
@@ -70,8 +70,8 @@ export const transferBetweenWallets = async ({
     const fromTransaction = await insertTransaction({
       user_id: userId,
       wallet_id: fromWalletId,
-      amount: amount,
-      value_usd: amount,
+      amount: -amount,
+      value_usd: -amount,
       type: "transfer_out",
       coin_symbol: "USD",
       status: "completed",

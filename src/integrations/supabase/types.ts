@@ -2823,6 +2823,15 @@ export type Database = {
             }
             Returns: undefined
           }
+      transfer_between_wallets: {
+        Args: {
+          p_from_wallet_id: string
+          p_to_wallet_id: string
+          p_amount: number
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       update_user_profits: {
         Args: {
           bot_profit_amount: number
