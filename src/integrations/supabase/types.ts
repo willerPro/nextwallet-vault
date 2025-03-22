@@ -2092,6 +2092,48 @@ export type Database = {
         }
         Relationships: []
       }
+      third_party_applications: {
+        Row: {
+          api_key: string
+          api_path: string | null
+          api_secret: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          api_key: string
+          api_path?: string | null
+          api_secret: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          api_key?: string
+          api_path?: string | null
+          api_secret?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: []
+      }
       ticket_bookings: {
         Row: {
           created_at: string
