@@ -25,6 +25,7 @@ import OfflineFallback from "./pages/OfflineFallback";
 import AddressBook from "./pages/AddressBook";
 import Arbitrage from "./pages/Arbitrage";
 import Bots from "./pages/Bots";
+import BotDetails from "./pages/BotDetails";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { getOTPVerificationState, isOTPVerificationStateValid } from "./utils/otpUtils";
@@ -125,6 +126,7 @@ function App() {
           <Route path="/fiat-currency" element={<FiatCurrency />} />
           <Route path="/arbitrage" element={<Arbitrage />} />
           <Route path="/bots" element={<Bots />} />
+          <Route path="/bots/:botId" element={<BotDetails />} />
         </Route>
         
         <Route path="*" element={<NotFound />} />

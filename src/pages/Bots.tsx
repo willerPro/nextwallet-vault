@@ -3,13 +3,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import AddThirdPartyModal from '@/components/bots/AddThirdPartyModal';
-import ContractApiSettings from '@/components/arbitrage/ContractApiSettings';
-import ArbitrageComponent from '@/components/bots/ArbitrageComponent';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { ThirdPartyApplication } from '@/types/wallet';
 
 const Bots = () => {
   const { user } = useAuth();
@@ -52,6 +51,35 @@ const Bots = () => {
     enabled: !!user,
   });
 
+  // Add default system bots
+  const allBots = [
+    {
+      id: 'contract-api',
+      name: 'Contract API',
+      type: 'system',
+      is_active: false,
+      income: 0,
+    },
+    {
+      id: 'arbitrage',
+      name: 'Arbitrage System',
+      type: 'system',
+      is_active: false,
+      income: 0,
+    },
+    ...applications.map((app: ThirdPartyApplication) => ({
+      id: app.id,
+      name: app.name,
+      type: 'third-party',
+      is_active: app.is_active || false,
+      income: 0, // This would be fetched from a separate table in a real implementation
+    })),
+  ];
+
+  const handleBotClick = (botId: string) => {
+    navigate(`/bots/${botId}`);
+  };
+
   return (
     <div className="container max-w-md mx-auto px-4 py-6 pb-20">
       <header className="flex justify-between items-center mb-6">
@@ -65,62 +93,36 @@ const Bots = () => {
         </Button>
       </header>
 
-      <div className="space-y-6">
-        {/* Default components */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Contract API</CardTitle>
-            <CardDescription>Connect to the Contract API trading system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ContractApiSettings wallets={wallets} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Arbitrage System</CardTitle>
-            <CardDescription>Connect to the Arbitrage trading system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ArbitrageComponent wallets={wallets} />
-          </CardContent>
-        </Card>
-
-        {/* Dynamic third-party applications */}
-        {applications.map((app) => (
-          <Card key={app.id}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{app.name}</CardTitle>
-              <CardDescription>{app.description || 'Third-party integration'}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-secondary/20 p-4 rounded-lg">
-                <div className="flex justify-between mb-3">
-                  <span className="text-sm text-muted-foreground">Status:</span>
-                  <span className={`text-sm font-medium ${app.is_active ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {app.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <div className="flex justify-between mb-3">
-                  <span className="text-sm text-muted-foreground">Connected wallet:</span>
-                  <span className="text-sm font-medium">
-                    {wallets.find(w => w.id === app.wallet_id)?.name || 'None'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">API:</span>
-                  <span className="text-sm font-medium">{app.api_path || 'Custom'}</span>
-                </div>
+      <div className="space-y-3">
+        {allBots.map((bot) => (
+          <Card 
+            key={bot.id} 
+            className="p-4 hover:bg-secondary/10 transition-colors cursor-pointer"
+            onClick={() => handleBotClick(bot.id)}
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-medium">{bot.name}</h3>
+                <span className={`text-xs ${bot.is_active ? 'text-green-500' : 'text-yellow-500'}`}>
+                  {bot.is_active ? 'Running' : 'Stopped'}
+                </span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-xs text-muted-foreground">Income</span>
+                <span className="font-medium">${bot.income.toFixed(2)}</span>
                 <Button 
-                  className="w-full mt-4" 
-                  variant={app.is_active ? "destructive" : "default"}
-                  size="sm"
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 text-xs h-7 px-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Handle disconnect logic here
+                  }}
                 >
-                  {app.is_active ? 'Deactivate' : 'Activate'}
+                  Disconnect
                 </Button>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ))}
       </div>
