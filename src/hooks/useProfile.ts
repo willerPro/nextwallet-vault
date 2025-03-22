@@ -12,7 +12,7 @@ export const useProfile = (user: User | null) => {
   
   // Add state to prevent rate limit errors
   const [lastUpdateTime, setLastUpdateTime] = useState<number | null>(null);
-  const MIN_UPDATE_INTERVAL = 10000; // Increase to 10 seconds to avoid rate limiting
+  const MIN_UPDATE_INTERVAL = 10000; // 10 seconds to avoid rate limiting
 
   const fetchProfile = async () => {
     if (!user) return;
@@ -68,13 +68,19 @@ export const useProfile = (user: User | null) => {
   const updateProfile = async (updatedProfile: UserProfile, showToast: boolean = true) => {
     if (!user || isUpdating) return;
     
-    // Implement strict rate limiting to prevent too many API calls
+    // Enhanced rate limiting to prevent rapid updates
     const now = Date.now();
     if (lastUpdateTime && now - lastUpdateTime < MIN_UPDATE_INTERVAL) {
-      console.log(`Skipping update - too soon (${(now - lastUpdateTime) / 1000}s elapsed, need ${MIN_UPDATE_INTERVAL / 1000}s)`);
+      console.log(`Skipping profile update - too soon (${(now - lastUpdateTime) / 1000}s elapsed, need ${MIN_UPDATE_INTERVAL / 1000}s)`);
       if (showToast) {
         toast.warning("Please wait a moment before updating again");
       }
+      return;
+    }
+    
+    // Skip update if nothing has changed to prevent unnecessary API calls
+    if (profile && JSON.stringify(profile) === JSON.stringify(updatedProfile)) {
+      console.log("Skipping update - no changes detected");
       return;
     }
     
@@ -144,6 +150,9 @@ export const useProfile = (user: User | null) => {
   useEffect(() => {
     if (user) {
       fetchProfile();
+    } else {
+      setProfile(null);
+      setLoading(false);
     }
   }, [user]);
 

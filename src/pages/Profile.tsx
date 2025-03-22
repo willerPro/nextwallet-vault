@@ -32,38 +32,45 @@ const Profile = () => {
     window.scrollTo(0, 0);
   }, []);
   
-  // Only attempt to update with geo data once, and only if needed
+  // Modified geo data update logic to prevent infinite loops
   useEffect(() => {
-    // Check if we've already attempted a geo update this session
-    if (geoUpdateAttempted) return;
+    // If we've already attempted an update or there's no profile data, exit early
+    if (geoUpdateAttempted || !profile || !user || loading) return;
     
-    // Only attempt update if geo data is available and profile exists
-    if (
-      !locationData.loading && 
-      !locationData.error && 
-      locationData.country && 
-      locationData.city && 
-      profile && 
-      user &&
-      (profile.country === "Unknown" || !profile.country || profile.city === "Unknown" || !profile.city)
-    ) {
-      // Mark that we've attempted an update
+    // Only update if location data is fully loaded and error-free
+    if (locationData.loading || locationData.error) return;
+    
+    // Only update if we have actual location data to use
+    if (!locationData.country || !locationData.city) return;
+    
+    // Only update if profile data is missing or different from geo data
+    const needsUpdate = 
+      profile.country === "Unknown" || 
+      !profile.country || 
+      profile.city === "Unknown" || 
+      !profile.city ||
+      (profile.country !== locationData.country && locationData.country) ||
+      (profile.city !== locationData.city && locationData.city);
+    
+    if (needsUpdate) {
+      // Mark that we've attempted an update to prevent further attempts
       setGeoUpdateAttempted(true);
       
-      // Only update if the values are actually different
-      if (profile.country !== locationData.country || profile.city !== locationData.city) {
-        const updatedProfile = {
-          ...profile,
-          country: locationData.country,
-          city: locationData.city
-        };
-        
-        console.log("Attempting one-time profile update with geo data");
-        // Pass false to not show toast
-        updateProfile(updatedProfile, false);
-      }
+      console.log("One-time geo update - updating profile with location data");
+      
+      const updatedProfile = {
+        ...profile,
+        country: locationData.country || profile.country,
+        city: locationData.city || profile.city
+      };
+      
+      // Pass false to not show toast for this automatic update
+      updateProfile(updatedProfile, false);
+    } else {
+      // Even if we don't need an update, mark as attempted to prevent checking again
+      setGeoUpdateAttempted(true);
     }
-  }, [locationData, profile, user, geoUpdateAttempted]);
+  }, [locationData, profile, user, geoUpdateAttempted, loading]);
   
   const handleLogout = async () => {
     try {
