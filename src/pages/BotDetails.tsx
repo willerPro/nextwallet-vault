@@ -23,6 +23,7 @@ const BotDetails = () => {
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [selectedWallet, setSelectedWallet] = useState('');
+  const [transactionsPerSecond, setTransactionsPerSecond] = useState(1);
   
   // Fetch wallets
   const { data: wallets = [] } = useQuery({
@@ -89,6 +90,7 @@ const BotDetails = () => {
           api_key: '',  // Arbitrage might not have these
           api_secret: '',
           wallet_id: data?.wallet_id || '',
+          transactions_per_second: data?.transactions_per_second || 1,
         };
       } 
       else {
@@ -128,6 +130,9 @@ const BotDetails = () => {
       setApiKey(botDetails.api_key || '');
       setApiSecret(botDetails.api_secret || '');
       setSelectedWallet(botDetails.wallet_id || '');
+      if (botDetails.transactions_per_second) {
+        setTransactionsPerSecond(botDetails.transactions_per_second);
+      }
     }
   }, [botDetails]);
 
@@ -154,6 +159,7 @@ const BotDetails = () => {
             user_id: user?.id,
             wallet_id: updateData.wallet_id,
             is_active: updateData.is_active,
+            transactions_per_second: updateData.transactions_per_second || 1,
           });
           
         if (error) throw error;
@@ -191,6 +197,7 @@ const BotDetails = () => {
       api_secret: apiSecret,
       wallet_id: selectedWallet,
       is_active: isActive,
+      transactions_per_second: transactionsPerSecond,
     });
   };
 
@@ -263,6 +270,23 @@ const BotDetails = () => {
               </SelectContent>
             </Select>
           </div>
+          
+          {botId === 'arbitrage' && (
+            <div className="space-y-2">
+              <Label htmlFor="transactionsPerSecond">Transactions Per Second</Label>
+              <Input 
+                id="transactionsPerSecond" 
+                type="number" 
+                min={1}
+                max={10}
+                value={transactionsPerSecond}
+                onChange={(e) => setTransactionsPerSecond(Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Higher values may increase profits but also increase risks
+              </p>
+            </div>
+          )}
           
           {botId !== 'arbitrage' && (
             <>
