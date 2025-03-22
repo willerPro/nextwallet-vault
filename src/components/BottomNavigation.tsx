@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Wallet, User, Send, Activity, CircleDashed } from 'lucide-react';
+import { Home, Wallet, User, Activity, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const BottomNavigation = () => {
@@ -37,14 +37,14 @@ export const BottomNavigation = () => {
         </Link>
         
         <Link
-          to="/arbitrage"
+          to="/bots"
           className={cn(
             "flex flex-col items-center py-1 px-3 text-xs",
-            isActive("/arbitrage") ? "text-primary" : "text-muted-foreground"
+            isActive("/bots") ? "text-primary" : "text-muted-foreground"
           )}
         >
-          <CircleDashed size={24} />
-          <span>Arbitrage</span>
+          <Bot size={24} />
+          <span>Bots</span>
         </Link>
         
         <Link

@@ -41,3 +41,17 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'failed';
   tx_hash?: string;
 }
+
+export interface ThirdPartyApplication {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  api_path?: string;
+  api_key: string;
+  api_secret: string;
+  wallet_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
