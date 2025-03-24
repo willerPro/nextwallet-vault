@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ const BotDetails = () => {
   const [apiSecret, setApiSecret] = useState('');
   const [selectedWallet, setSelectedWallet] = useState('');
   const [transactionsPerSecond, setTransactionsPerSecond] = useState(1);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   // Fetch wallets
   const { data: wallets = [] } = useQuery({
@@ -82,6 +83,8 @@ const BotDetails = () => {
           return null;
         }
         
+        console.log("Fetched arbitrage data:", data);
+        
         return {
           id: 'arbitrage',
           name: 'Arbitrage System',
@@ -107,6 +110,8 @@ const BotDetails = () => {
           return null;
         }
         
+        console.log("Fetched third-party app data:", data);
+        
         return {
           id: data.id,
           name: data.name,
@@ -124,8 +129,9 @@ const BotDetails = () => {
   });
 
   // Update the state when the bot details are loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (botDetails) {
+      console.log("Setting form data from bot details:", botDetails);
       setIsActive(botDetails.is_active);
       setApiKey(botDetails.api_key || '');
       setApiSecret(botDetails.api_secret || '');
@@ -133,14 +139,17 @@ const BotDetails = () => {
       if (botDetails.transactions_per_second) {
         setTransactionsPerSecond(botDetails.transactions_per_second);
       }
+      setInitialLoad(false);
     }
   }, [botDetails]);
 
   // Mutation for updating bot settings
   const updateBotMutation = useMutation({
     mutationFn: async (updateData: any) => {
+      console.log("Updating bot with data:", updateData);
+      
       if (botId === 'contract-api') {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('contract_api_settings')
           .upsert({
             user_id: user?.id,
@@ -148,25 +157,59 @@ const BotDetails = () => {
             api_secret: updateData.api_secret,
             wallet_id: updateData.wallet_id,
             is_active: updateData.is_active,
-          });
+          })
+          .select();
           
         if (error) throw error;
+        console.log("Updated contract_api_settings:", data);
+        return data;
       } 
       else if (botId === 'arbitrage') {
-        const { error } = await supabase
+        // Check if record exists first
+        const { data: existingData, error: checkError } = await supabase
           .from('arbitrage_operations')
-          .upsert({
-            user_id: user?.id,
-            wallet_id: updateData.wallet_id,
-            is_active: updateData.is_active,
-            transactions_per_second: updateData.transactions_per_second || 1,
-          });
-          
+          .select('id')
+          .eq('user_id', user?.id)
+          .maybeSingle();
+        
+        if (checkError) throw checkError;
+        
+        let operation;
+        
+        if (existingData) {
+          // Update existing record
+          operation = supabase
+            .from('arbitrage_operations')
+            .update({
+              wallet_id: updateData.wallet_id,
+              is_active: updateData.is_active,
+              transactions_per_second: updateData.transactions_per_second || 1,
+              ...(updateData.is_active ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
+            })
+            .eq('user_id', user?.id)
+            .select();
+        } else {
+          // Insert new record
+          operation = supabase
+            .from('arbitrage_operations')
+            .insert({
+              user_id: user?.id,
+              wallet_id: updateData.wallet_id,
+              is_active: updateData.is_active,
+              transactions_per_second: updateData.transactions_per_second || 1,
+              ...(updateData.is_active ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
+            })
+            .select();
+        }
+        
+        const { data, error } = await operation;
         if (error) throw error;
+        console.log("Updated arbitrage_operations:", data);
+        return data;
       } 
       else {
         // For third-party applications
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('third_party_applications')
           .update({
             api_key: updateData.api_key,
@@ -175,9 +218,12 @@ const BotDetails = () => {
             is_active: updateData.is_active,
           })
           .eq('id', botId)
-          .eq('user_id', user?.id);
+          .eq('user_id', user?.id)
+          .select();
           
         if (error) throw error;
+        console.log("Updated third_party_applications:", data);
+        return data;
       }
     },
     onSuccess: () => {
@@ -201,7 +247,7 @@ const BotDetails = () => {
     });
   };
 
-  if (isLoading) {
+  if (isLoading && initialLoad) {
     return (
       <div className="container max-w-md mx-auto px-4 py-6">
         <div className="animate-pulse space-y-4">
@@ -212,7 +258,7 @@ const BotDetails = () => {
     );
   }
 
-  if (!botDetails) {
+  if (!botDetails && !isLoading) {
     return (
       <div className="container max-w-md mx-auto px-4 py-6">
         <Button onClick={() => navigate('/bots')} variant="ghost" size="sm" className="mb-6">
@@ -235,7 +281,7 @@ const BotDetails = () => {
       
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>{botDetails.name}</CardTitle>
+          <CardTitle>{botDetails?.name}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">

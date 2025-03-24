@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,44 @@ const Bots = () => {
     enabled: !!user,
   });
   
+  // Fetch contract API settings
+  const { data: contractApiSettings, refetch: refetchContractApi } = useQuery({
+    queryKey: ['contract_api_settings', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contract_api_settings')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching contract API settings:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
+  
+  // Fetch arbitrage operations
+  const { data: arbitrageOperations, refetch: refetchArbitrage } = useQuery({
+    queryKey: ['arbitrage_operations', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('arbitrage_operations')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching arbitrage operations:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user,
+  });
+  
   // Fetch third-party applications
   const { data: applications = [], refetch: refetchApps } = useQuery({
     queryKey: ['applications', user?.id],
@@ -72,17 +110,17 @@ const Bots = () => {
       id: 'contract-api',
       name: 'Contract API',
       type: 'system',
-      is_active: false,
+      is_active: contractApiSettings?.is_active || false,
       income: 0,
-      wallet_id: null,
+      wallet_id: contractApiSettings?.wallet_id || null,
     },
     {
       id: 'arbitrage',
       name: 'Arbitrage System',
       type: 'system',
-      is_active: false,
+      is_active: arbitrageOperations?.is_active || false,
       income: 0,
-      wallet_id: null,
+      wallet_id: arbitrageOperations?.wallet_id || null,
     },
     ...applications.map((app: ThirdPartyApplication) => ({
       id: app.id,
@@ -124,32 +162,82 @@ const Bots = () => {
         if (error) {
           throw new Error(error.message);
         }
+        await refetchApps();
       } else if (bot.id === 'contract-api') {
-        // Update contract API settings
-        const { error } = await supabase
+        // Check if contract API settings exist
+        const { data: existingSettings } = await supabase
           .from('contract_api_settings')
-          .update({ is_active: newStatus })
-          .eq('user_id', user.id);
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
           
-        if (error) {
-          throw new Error(error.message);
+        if (existingSettings) {
+          // Update existing settings
+          const { error } = await supabase
+            .from('contract_api_settings')
+            .update({ is_active: newStatus })
+            .eq('user_id', user.id);
+            
+          if (error) {
+            throw new Error(error.message);
+          }
+        } else {
+          // Create new settings
+          const { error } = await supabase
+            .from('contract_api_settings')
+            .insert({
+              user_id: user.id,
+              is_active: newStatus,
+              api_key: '', // Default empty values
+              api_secret: '',
+              wallet_id: null,
+            });
+            
+          if (error) {
+            throw new Error(error.message);
+          }
         }
+        await refetchContractApi();
       } else if (bot.id === 'arbitrage') {
-        // Update arbitrage operations
-        const { error } = await supabase
+        // Check if arbitrage operations exist
+        const { data: existingOperations } = await supabase
           .from('arbitrage_operations')
-          .update({
-            is_active: newStatus,
-            ...(newStatus ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
-          })
-          .eq('user_id', user.id);
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
           
-        if (error) {
-          throw new Error(error.message);
+        if (existingOperations) {
+          // Update existing operations
+          const { error } = await supabase
+            .from('arbitrage_operations')
+            .update({
+              is_active: newStatus,
+              ...(newStatus ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
+            })
+            .eq('user_id', user.id);
+            
+          if (error) {
+            throw new Error(error.message);
+          }
+        } else {
+          // Create new operations
+          const { error } = await supabase
+            .from('arbitrage_operations')
+            .insert({
+              user_id: user.id,
+              is_active: newStatus,
+              transactions_per_second: 1, // Default value
+              wallet_id: null,
+              ...(newStatus ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
+            });
+            
+          if (error) {
+            throw new Error(error.message);
+          }
         }
+        await refetchArbitrage();
       }
       
-      await refetchApps();
       toast.success(`Bot successfully ${action}`);
     } catch (error) {
       console.error('Error toggling bot status:', error);
@@ -166,6 +254,22 @@ const Bots = () => {
     if (!walletId) return null;
     return wallets.find(w => w.id === walletId);
   };
+
+  // Function to refresh all data
+  const refreshAllData = async () => {
+    await Promise.all([
+      refetchApps(),
+      refetchContractApi(),
+      refetchArbitrage()
+    ]);
+  };
+
+  // Refresh data when component mounts
+  useEffect(() => {
+    if (user) {
+      refreshAllData();
+    }
+  }, [user]);
 
   return (
     <div className="container max-w-md mx-auto px-4 py-6 pb-20">
