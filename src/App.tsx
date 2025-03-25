@@ -19,7 +19,6 @@ import NodeSettings from "./pages/NodeSettings";
 import CustomNetwork from "./pages/CustomNetwork";
 import FiatCurrency from "./pages/FiatCurrency";
 import ChangePinPage from "./pages/ChangePinPage";
-import OTPVerification from "./pages/OTPVerification";
 import NotFound from "./pages/NotFound";
 import OfflineFallback from "./pages/OfflineFallback";
 import AddressBook from "./pages/AddressBook";
@@ -28,7 +27,6 @@ import Bots from "./pages/Bots";
 import BotDetails from "./pages/BotDetails";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { BottomNavigation } from "./components/BottomNavigation";
-import { getOTPVerificationState, isOTPVerificationStateValid } from "./utils/otpUtils";
 
 function App() {
   const { isLoggedIn, user } = useAuth();
@@ -36,7 +34,6 @@ function App() {
   const navigate = useNavigate();
   const [isInitialRender, setIsInitialRender] = useState(true);
   const isOnline = useInternetConnection();
-  const [hasCheckedOTPState, setHasCheckedOTPState] = useState(false);
 
   useEffect(() => {
     // Prevent automatic redirection on initial render
@@ -45,53 +42,15 @@ function App() {
       return;
     }
 
-    // Skip if already on OTP verification page to prevent redirection loop
-    if (location.pathname === '/otp-verification') {
-      setHasCheckedOTPState(true);
-      return;
+    // If user is authenticated and on index, go to dashboard
+    if (isLoggedIn && location.pathname === "/") {
+      navigate("/dashboard");
     }
-
-    // If there's a valid OTP verification state, redirect to the OTP verification page
-    const otpState = getOTPVerificationState();
-    if (otpState && isOTPVerificationStateValid() && !hasCheckedOTPState) {
-      setHasCheckedOTPState(true);
-      navigate('/otp-verification');
-      return;
-    }
-
-    // If user is authenticated and on index but has already verified, go to dashboard
-    if (isLoggedIn && location.pathname === "/" && hasCheckedOTPState) {
-      // Check if user already has a verified login, then redirect to dashboard
-      const checkVerifiedLogin = async () => {
-        try {
-          const { data } = await supabase
-            .from('logins')
-            .select('verified')
-            .eq('user_id', user?.id)
-            .eq('verified', true)
-            .order('created_at', { ascending: false })
-            .limit(1);
-            
-          if (data && data.length > 0) {
-            navigate("/dashboard");
-          } else if (location.pathname !== "/otp-verification") {
-            // If no verified login but user is logged in, go to OTP page
-            navigate("/otp-verification");
-          }
-        } catch (error) {
-          console.error("Error checking verified login:", error);
-        }
-      };
-      
-      if (user) {
-        checkVerifiedLogin();
-      }
-    }
-  }, [isLoggedIn, user, location.pathname, navigate, isInitialRender, hasCheckedOTPState]);
+  }, [isLoggedIn, user, location.pathname, navigate, isInitialRender]);
 
   // Check if the current route should display the bottom navigation
   const shouldShowBottomNav = () => {
-    const publicRoutes = ["/", "/login", "/signup", "/otp-verification"];
+    const publicRoutes = ["/", "/login", "/signup"];
     return !publicRoutes.includes(location.pathname);
   };
 
@@ -106,7 +65,6 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Index />} />
-        <Route path="/otp-verification" element={<OTPVerification />} />
         
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

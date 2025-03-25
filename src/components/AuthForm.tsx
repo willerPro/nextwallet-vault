@@ -33,9 +33,8 @@ export function AuthForm() {
         if (error) {
           toast.error(error.message || "Failed to sign in");
         } else if (success) {
-          toast.info("Please enter the OTP code sent to your email");
-          // Explicitly navigate to OTP verification page
-          navigate('/otp-verification');
+          toast.success("Successfully signed in!");
+          // Navigate to dashboard (handled in signIn function)
         }
       } else {
         const userData = fullName ? { full_name: fullName } : undefined;
@@ -80,7 +79,7 @@ export function AuthForm() {
       if (error) {
         toast.error("Biometric verification failed");
       } else if (success) {
-        toast.info("Please verify the OTP code sent to your email");
+        toast.success("Successfully signed in!");
       }
     } catch (error: any) {
       toast.error(error.message || "Biometric login failed");

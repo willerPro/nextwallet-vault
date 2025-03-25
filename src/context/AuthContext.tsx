@@ -1,9 +1,9 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { generateOTP, storeOTPVerificationState } from '@/utils/otpUtils';
 
 type AuthContextType = {
   user: User | null;
@@ -24,10 +24,6 @@ type AuthContextType = {
   authenticateWithBiometric: () => Promise<boolean>;
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
-  verifyOTP: (otp: string) => Promise<{
-    error: any | null;
-    success: boolean;
-  }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -147,75 +143,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error, success: false };
       }
 
-      console.log("Sign in successful, generating OTP");
-      
-      // Delete any old unused OTPs for this user
-      const { error: deleteError } = await supabase
-        .from('logins')
-        .delete()
-        .eq('user_id', data.user.id)
-        .eq('verified', false);
-        
-      if (deleteError) {
-        console.error("Error deleting old OTPs:", deleteError);
-        // Continue with the flow even if deletion fails
-      } else {
-        console.log("Old unverified OTPs deleted successfully");
-      }
-      
-      // Generate OTP and save it to the logins table
-      const otp = generateOTP(6);
-      
-      // Calculate expiry time - 10 minutes from now
-      const expiryTime = new Date();
-      expiryTime.setMinutes(expiryTime.getMinutes() + 10);
-      
-      // Store OTP and session info in logins table with explicit expires_at
-      const { error: otpError } = await supabase.from('logins').insert({
-        user_id: data.user.id,
-        user_email: email,
-        otp,
-        expires_at: expiryTime.toISOString(),
-        verified: false
-      });
-
-      if (otpError) {
-        console.error("Error saving OTP:", otpError);
-        return { error: otpError, success: false };
-      }
-      
-      // Send OTP data to webhook
-      try {
-        const webhookUrl = "https://signal7888.app.n8n.cloud/webhook-test/";
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: email,
-            otp: otp,
-            timestamp: new Date().toISOString(),
-            userId: data.user.id
-          })
-        });
-        console.log("OTP data sent to webhook successfully");
-      } catch (webhookError) {
-        console.error("Error sending OTP data to webhook:", webhookError);
-        // Continue with the flow even if webhook fails
-      }
-      
-      console.log("OTP generated and stored, redirecting to verification page");
-
-      // Store verification state in localStorage
-      storeOTPVerificationState(email, data.session.access_token);
+      console.log("Sign in successful, redirecting to dashboard");
       
       // Set session and user state
       setSession(data.session);
       setUser(data.user);
       
-      // Navigate to OTP verification page
-      navigate('/otp-verification');
+      // Navigate to dashboard
+      navigate('/dashboard');
       
       // Return success
       return { 
@@ -224,45 +159,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     } catch (error) {
       console.error("Sign in exception:", error);
-      return { error, success: false };
-    }
-  };
-
-  const verifyOTP = async (otp: string) => {
-    try {
-      // Check if we already have a user from the sign-in process
-      const currentUser = user || (session ? session.user : null);
-      
-      if (!currentUser) {
-        return { error: "No active session", success: false };
-      }
-      
-      // Check if OTP is valid
-      const { data, error } = await supabase
-        .from("logins")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .eq("otp", otp)
-        .eq("verified", false)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error || !data) {
-        console.error("OTP verification error:", error);
-        return { error: "Invalid or expired OTP code", success: false };
-      }
-
-      // Mark OTP as verified
-      await supabase
-        .from("logins")
-        .update({ verified: true })
-        .eq("id", data.id);
-
-      return { error: null, success: true };
-    } catch (error) {
-      console.error("OTP verification error:", error);
       return { error, success: false };
     }
   };
@@ -286,8 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         authenticateWithBiometric,
         setUser,
-        setSession,
-        verifyOTP
+        setSession
       }}
     >
       {children}
