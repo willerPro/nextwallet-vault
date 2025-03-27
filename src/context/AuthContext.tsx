@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(data.session);
       setUser(data.user);
       
-      // Navigate to dashboard
+      // Navigate to dashboard directly without OTP verification
       navigate('/dashboard');
       
       // Return success
