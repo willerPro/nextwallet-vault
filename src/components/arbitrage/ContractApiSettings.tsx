@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ interface ContractApiSettingsProps {
 // Updated interface to match the database schema
 interface ApiSettings {
   id?: string;
-  user_id: string; // Changed from optional to required
+  user_id: string;
   api_key: string;
   api_secret: string;
   wallet_id: string | null;
@@ -34,6 +33,7 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [settingsId, setSettingsId] = useState<string | null>(null);
 
   // Fetch existing API settings if available
   useEffect(() => {
@@ -44,6 +44,8 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
             .from('contract_api_settings')
             .select('*')
             .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
             
           if (error) {
@@ -56,6 +58,7 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
             setApiSecret(data.api_secret || '');
             setSelectedWallet(data.wallet_id || null);
             setIsActive(data.is_active || false);
+            setSettingsId(data.id || null);
           }
         } catch (error) {
           console.error('Error in fetch API settings:', error);
@@ -92,14 +95,33 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
         is_active: isActive
       };
 
-      const { error } = await supabase
-        .from('contract_api_settings')
-        .upsert(settingsData);
-        
+      let operation;
+      
+      if (settingsId) {
+        // Update existing record if we have an ID
+        operation = supabase
+          .from('contract_api_settings')
+          .update(settingsData)
+          .eq('id', settingsId)
+          .eq('user_id', user.id);
+      } else {
+        // Insert new record if no ID
+        operation = supabase
+          .from('contract_api_settings')
+          .insert(settingsData);
+      }
+      
+      const { error, data } = await operation;
+      
       if (error) {
         console.error('Error saving API settings:', error);
         toast.error("Failed to save API settings");
         return;
+      }
+      
+      // If this was an insert that returned the new record, update our state
+      if (data && data.length > 0 && data[0].id) {
+        setSettingsId(data[0].id);
       }
       
       toast.success("API settings saved successfully");
@@ -126,21 +148,40 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
     
     try {
       const settingsData: ApiSettings = {
-        user_id: user.id, // Ensure user.id is always defined
+        user_id: user.id,
         api_key: apiKey,
         api_secret: apiSecret,
         wallet_id: selectedWallet,
         is_active: newActiveState
       };
 
-      const { error } = await supabase
-        .from('contract_api_settings')
-        .upsert(settingsData);
-        
+      let operation;
+      
+      if (settingsId) {
+        // Update existing record if we have an ID
+        operation = supabase
+          .from('contract_api_settings')
+          .update(settingsData)
+          .eq('id', settingsId)
+          .eq('user_id', user.id);
+      } else {
+        // Insert new record if no ID
+        operation = supabase
+          .from('contract_api_settings')
+          .insert(settingsData);
+      }
+      
+      const { error, data } = await operation;
+      
       if (error) {
         console.error('Error updating bot activation:', error);
         toast.error("Failed to update bot status");
         return;
+      }
+      
+      // If this was an insert that returned the new record, update our state
+      if (data && data.length > 0 && data[0].id) {
+        setSettingsId(data[0].id);
       }
       
       setIsActive(newActiveState);

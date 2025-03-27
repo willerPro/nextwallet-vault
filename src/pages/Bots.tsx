@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bot, Plus } from 'lucide-react';
@@ -56,12 +55,15 @@ const Bots = () => {
         .from('contract_api_settings')
         .select('*')
         .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
         
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching contract API settings:', error);
         return null;
       }
+      
       return data;
     },
     enabled: !!user,
@@ -164,18 +166,21 @@ const Bots = () => {
         }
         await refetchApps();
       } else if (bot.id === 'contract-api') {
-        // Check if contract API settings exist
+        // Check if contract API settings exist and get the most recent one
         const { data: existingSettings } = await supabase
           .from('contract_api_settings')
-          .select('id')
+          .select('*')
           .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
           
         if (existingSettings) {
-          // Update existing settings
+          // Update existing settings - use id to ensure we update the correct record
           const { error } = await supabase
             .from('contract_api_settings')
             .update({ is_active: newStatus })
+            .eq('id', existingSettings.id)
             .eq('user_id', user.id);
             
           if (error) {
@@ -214,6 +219,7 @@ const Bots = () => {
               is_active: newStatus,
               ...(newStatus ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
             })
+            .eq('id', existingOperations.id)
             .eq('user_id', user.id);
             
           if (error) {

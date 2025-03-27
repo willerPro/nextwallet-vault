@@ -25,6 +25,7 @@ const BotDetails = () => {
   const [selectedWallet, setSelectedWallet] = useState('');
   const [transactionsPerSecond, setTransactionsPerSecond] = useState(1);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [recordId, setRecordId] = useState<string | null>(null);
   
   // Fetch wallets
   const { data: wallets = [] } = useQuery({
@@ -54,15 +55,22 @@ const BotDetails = () => {
           .from('contract_api_settings')
           .select('*')
           .eq('user_id', user?.id)
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
           
         if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows returned"
           console.error('Error fetching contract API settings:', error);
           return null;
         }
         
+        if (data) {
+          setRecordId(data.id);
+        }
+        
         return {
           id: 'contract-api',
+          record_id: data?.id || null,
           name: 'Contract API',
           type: 'system',
           is_active: data?.is_active || false,
@@ -76,7 +84,7 @@ const BotDetails = () => {
           .from('arbitrage_operations')
           .select('*')
           .eq('user_id', user?.id)
-          .single();
+          .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
           console.error('Error fetching arbitrage settings:', error);
@@ -85,8 +93,13 @@ const BotDetails = () => {
         
         console.log("Fetched arbitrage data:", data);
         
+        if (data) {
+          setRecordId(data.id);
+        }
+        
         return {
           id: 'arbitrage',
+          record_id: data?.id || null,
           name: 'Arbitrage System',
           type: 'system',
           is_active: data?.is_active || false,
@@ -103,7 +116,7 @@ const BotDetails = () => {
           .select('*')
           .eq('id', botId)
           .eq('user_id', user?.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           console.error('Error fetching application details:', error);
@@ -112,8 +125,13 @@ const BotDetails = () => {
         
         console.log("Fetched third-party app data:", data);
         
+        if (data) {
+          setRecordId(data.id);
+        }
+        
         return {
           id: data.id,
+          record_id: data.id,
           name: data.name,
           type: 'third-party',
           is_active: data.is_active || false,
@@ -139,6 +157,9 @@ const BotDetails = () => {
       if (botDetails.transactions_per_second) {
         setTransactionsPerSecond(botDetails.transactions_per_second);
       }
+      if (botDetails.record_id) {
+        setRecordId(botDetails.record_id);
+      }
       setInitialLoad(false);
     }
   }, [botDetails]);
@@ -149,34 +170,52 @@ const BotDetails = () => {
       console.log("Updating bot with data:", updateData);
       
       if (botId === 'contract-api') {
-        const { data, error } = await supabase
-          .from('contract_api_settings')
-          .upsert({
-            user_id: user?.id,
-            api_key: updateData.api_key,
-            api_secret: updateData.api_secret,
-            wallet_id: updateData.wallet_id,
-            is_active: updateData.is_active,
-          })
-          .select();
-          
+        // For contract API, handle update or insert based on recordId
+        let operation;
+        
+        if (recordId) {
+          // Update existing record
+          operation = supabase
+            .from('contract_api_settings')
+            .update({
+              api_key: updateData.api_key,
+              api_secret: updateData.api_secret,
+              wallet_id: updateData.wallet_id,
+              is_active: updateData.is_active,
+            })
+            .eq('id', recordId)
+            .eq('user_id', user?.id)
+            .select();
+        } else {
+          // Insert new record
+          operation = supabase
+            .from('contract_api_settings')
+            .insert({
+              user_id: user?.id,
+              api_key: updateData.api_key,
+              api_secret: updateData.api_secret,
+              wallet_id: updateData.wallet_id,
+              is_active: updateData.is_active,
+            })
+            .select();
+        }
+        
+        const { data, error } = await operation;
         if (error) throw error;
+        
+        // Update the recordId if this was an insert
+        if (data && data.length > 0 && !recordId) {
+          setRecordId(data[0].id);
+        }
+        
         console.log("Updated contract_api_settings:", data);
         return data;
       } 
       else if (botId === 'arbitrage') {
         // Check if record exists first
-        const { data: existingData, error: checkError } = await supabase
-          .from('arbitrage_operations')
-          .select('id')
-          .eq('user_id', user?.id)
-          .maybeSingle();
-        
-        if (checkError) throw checkError;
-        
         let operation;
         
-        if (existingData) {
+        if (recordId) {
           // Update existing record
           operation = supabase
             .from('arbitrage_operations')
@@ -186,6 +225,7 @@ const BotDetails = () => {
               transactions_per_second: updateData.transactions_per_second || 1,
               ...(updateData.is_active ? { started_at: new Date().toISOString() } : { stopped_at: new Date().toISOString() })
             })
+            .eq('id', recordId)
             .eq('user_id', user?.id)
             .select();
         } else {
@@ -204,6 +244,12 @@ const BotDetails = () => {
         
         const { data, error } = await operation;
         if (error) throw error;
+        
+        // Update the recordId if this was an insert
+        if (data && data.length > 0 && !recordId) {
+          setRecordId(data[0].id);
+        }
+        
         console.log("Updated arbitrage_operations:", data);
         return data;
       } 
@@ -229,6 +275,8 @@ const BotDetails = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bot', botId, user?.id] });
       queryClient.invalidateQueries({ queryKey: ['applications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['contract_api_settings', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['arbitrage_operations', user?.id] });
       toast.success('Bot settings updated successfully');
     },
     onError: (error) => {
