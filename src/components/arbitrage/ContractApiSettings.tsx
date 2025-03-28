@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -34,6 +35,8 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
   const [isActive, setIsActive] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [settingsId, setSettingsId] = useState<string | null>(null);
+  const [animatedAmount, setAnimatedAmount] = useState(0);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Fetch existing API settings if available
   useEffect(() => {
@@ -68,6 +71,56 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
       fetchApiSettings();
     }
   }, [user]);
+
+  // Handle animation effect
+  useEffect(() => {
+    if (isActive && selectedWallet) {
+      // Find selected wallet's balance
+      const selectedWalletData = wallets.find(w => w.id === selectedWallet);
+      const startingBalance = selectedWalletData?.balance || 100;
+      
+      let lastTimestamp = 0;
+      let currentAmount = startingBalance;
+      let direction = -1; // Start by decreasing
+      let phaseTime = 0; // Track time in current phase
+
+      // Animation function
+      const animate = (timestamp: number) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        
+        phaseTime += delta;
+        
+        // Change direction occasionally
+        if (phaseTime > 2000) { // Change direction every ~2 seconds
+          direction = Math.random() > 0.5 ? 1 : -1;
+          phaseTime = 0;
+        }
+        
+        // Calculate new amount with fluctuation
+        const change = Math.random() * 0.2 * direction;
+        currentAmount = Math.max(0, currentAmount + change);
+        
+        setAnimatedAmount(currentAmount);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      };
+      
+      // Start animation
+      animationFrameRef.current = requestAnimationFrame(animate);
+      
+      // Cleanup animation on unmount or when inactive
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    } else {
+      // If not active, just show static amounts
+      const selectedWalletData = wallets.find(w => w.id === selectedWallet);
+      setAnimatedAmount(selectedWalletData?.balance || 0);
+    }
+  }, [isActive, selectedWallet, wallets]);
 
   // Handle API settings save
   const saveApiSettings = async () => {
@@ -246,9 +299,12 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
                         key={wallet.id}
                         variant={selectedWallet === wallet.id ? "default" : "outline"}
                         onClick={() => setSelectedWallet(wallet.id)}
-                        className="justify-between"
+                        className={`justify-between ${selectedWallet === wallet.id && isActive ? "border-2 border-red-500" : ""}`}
                       >
                         <span>{wallet.name}</span>
+                        {selectedWallet === wallet.id && isActive && (
+                          <span className="text-xs text-red-500 ml-2">In Use</span>
+                        )}
                       </Button>
                     ))}
                   </div>
@@ -260,10 +316,21 @@ const ContractApiSettings = ({ wallets }: ContractApiSettingsProps) => {
             </Dialog>
           </div>
           {selectedWallet ? (
-            <div className="bg-secondary/30 p-3 rounded-md">
+            <div className={`p-3 rounded-md ${isActive ? "bg-secondary/30 border border-red-500" : "bg-secondary/30"}`}>
               <p className="text-sm">
                 Income will be deposited to: {wallets.find(w => w.id === selectedWallet)?.name || 'Selected wallet'}
               </p>
+              {isActive && (
+                <div className="mt-2">
+                  <Label className="text-xs">Current Balance</Label>
+                  <div className="text-sm font-medium animate-pulse">
+                    ${animatedAmount.toFixed(2)}
+                  </div>
+                  <p className="text-xs text-red-500 mt-1">
+                    Wallet in use - Do not perform any other actions on this wallet
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-muted p-3 rounded-md">

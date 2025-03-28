@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, ArrowDown, Eye, EyeOff, Send, Upload, TrendingUp } from "lucide-react";
+import { ArrowUp, ArrowDown, Eye, EyeOff, Send, Upload, TrendingUp, Bot } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -30,6 +30,8 @@ type Wallet = {
   balance: number;
   name: string;
   created_at: string;
+  isInUse?: boolean;
+  isContractBot?: boolean;
 };
 
 type ArbitrageOperation = {
@@ -49,6 +51,7 @@ const Dashboard = () => {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [hideBalance, setHideBalance] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
+  const [animatedTotalBalance, setAnimatedTotalBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [wallets, setWallets] = useState<Wallet[] | null>(null);
   const [activeArbitrage, setActiveArbitrage] = useState<ArbitrageOperation | null>(null);
@@ -58,6 +61,8 @@ const Dashboard = () => {
   const [totalReceived, setTotalReceived] = useState(0);
   const [profit, setProfit] = useState(0);
   const [isLoadingProfit, setIsLoadingProfit] = useState(true);
+  const [hasActiveContractBot, setHasActiveContractBot] = useState(false);
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -87,21 +92,67 @@ const Dashboard = () => {
 
       setIsLoadingBalance(true);
       try {
-        const { data, error } = await supabase
+        // Get wallets
+        const { data: walletsData, error: walletsError } = await supabase
           .from('wallets')
           .select('*')
           .eq('user_id', user.id);
 
-        if (error) {
-          console.error("Error fetching wallets:", error);
-        } else if (data && data.length > 0) {
-          setWallets(data as Wallet[]);
-          
-          const total = data.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
-          setTotalBalance(total);
-        } else {
-          setTotalBalance(0);
+        if (walletsError) {
+          console.error("Error fetching wallets:", walletsError);
+          return;
         }
+        
+        if (!walletsData || walletsData.length === 0) {
+          setWallets([]);
+          setTotalBalance(0);
+          setAnimatedTotalBalance(0);
+          return;
+        }
+        
+        // Check for active contract bots
+        const { data: contractData, error: contractError } = await supabase
+          .from('contract_api_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+          
+        if (contractError) {
+          console.error("Error fetching contract bot settings:", contractError);
+        }
+        
+        // Check for active arbitrage operations
+        const { data: arbitrageData, error: arbitrageError } = await supabase
+          .from('arbitrage_operations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+          
+        if (arbitrageError) {
+          console.error("Error fetching arbitrage operations:", arbitrageError);
+        }
+        
+        // Mark wallets that are in use
+        const enhancedWallets = walletsData.map(wallet => {
+          const isUsedByContract = contractData?.some(contract => contract.wallet_id === wallet.id) || false;
+          const isUsedByArbitrage = arbitrageData?.some(arbitrage => arbitrage.wallet_id === wallet.id) || false;
+          
+          return {
+            ...wallet,
+            isInUse: isUsedByContract || isUsedByArbitrage,
+            isContractBot: isUsedByContract
+          };
+        });
+        
+        setWallets(enhancedWallets as Wallet[]);
+        
+        const total = enhancedWallets.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
+        setTotalBalance(total);
+        setAnimatedTotalBalance(total);
+        
+        // Check if any contract bot is active
+        setHasActiveContractBot(!!contractData && contractData.length > 0);
+        
       } finally {
         setIsLoadingBalance(false);
       }
@@ -165,6 +216,47 @@ const Dashboard = () => {
     fetchProfitData();
   }, [user]);
 
+  // Animate total balance if there's an active contract bot
+  useEffect(() => {
+    if (hasActiveContractBot && !hideBalance) {
+      let lastTimestamp = 0;
+      let currentAmount = totalBalance;
+      let direction = -1; // Start by decreasing
+      let phaseTime = 0;
+      
+      const animate = (timestamp: number) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        
+        phaseTime += delta;
+        
+        // Change direction occasionally
+        if (phaseTime > 2000) {
+          direction = Math.random() > 0.5 ? 1 : -1;
+          phaseTime = 0;
+        }
+        
+        // Calculate new amount with subtle fluctuation
+        const change = Math.random() * 0.1 * direction;
+        currentAmount = Math.max(0, currentAmount + change);
+        
+        setAnimatedTotalBalance(currentAmount);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      };
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+      
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    } else {
+      setAnimatedTotalBalance(totalBalance);
+    }
+  }, [hasActiveContractBot, totalBalance, hideBalance]);
+
   // Calculate profit whenever total balance or total received changes
   useEffect(() => {
     const calculatedProfit = totalBalance - totalReceived;
@@ -225,9 +317,11 @@ const Dashboard = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <GlassCard className="bg-black border border-gold/30 p-4">
+          <GlassCard className={`bg-black border ${hasActiveContractBot ? 'border-red-500/30' : 'border-gold/30'} p-4`}>
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-sm font-medium text-gold">Total Balance</h2>
+              <h2 className={`text-sm font-medium ${hasActiveContractBot ? 'text-red-400' : 'text-gold'}`}>
+                Total Balance {hasActiveContractBot && <span className="text-xs">(Bot Active)</span>}
+              </h2>
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -240,7 +334,9 @@ const Dashboard = () => {
             {isLoadingBalance ? (
               <div className="text-2xl font-bold my-1 animate-pulse">Loading...</div>
             ) : (
-              <div className="text-2xl font-bold my-1 text-white">{formatBalance(totalBalance)}</div>
+              <div className={`text-2xl font-bold my-1 text-white ${hasActiveContractBot && !hideBalance ? 'animate-pulse' : ''}`}>
+                {formatBalance(hasActiveContractBot ? animatedTotalBalance : totalBalance)}
+              </div>
             )}
             
             {/* Profit/Loss Display */}
@@ -249,6 +345,15 @@ const Dashboard = () => {
                 <TrendingUp className={`h-4 w-4 mr-1 ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`} />
                 <span className={`text-xs font-medium ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {hideBalance ? "••••••" : `${profit >= 0 ? '+' : ''}$${profit.toLocaleString()} profit`}
+                </span>
+              </div>
+            )}
+            
+            {hasActiveContractBot && (
+              <div className="flex items-center mt-1 mb-2">
+                <Bot className="h-4 w-4 mr-1 text-red-400" />
+                <span className="text-xs text-red-400">
+                  Contract Bot Active - Balance is fluctuating
                 </span>
               </div>
             )}
