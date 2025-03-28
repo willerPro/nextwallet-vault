@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -51,7 +50,6 @@ const Dashboard = () => {
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [hideBalance, setHideBalance] = useState(false);
   const [totalBalance, setTotalBalance] = useState(0);
-  const [animatedTotalBalance, setAnimatedTotalBalance] = useState(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [wallets, setWallets] = useState<Wallet[] | null>(null);
   const [activeArbitrage, setActiveArbitrage] = useState<ArbitrageOperation | null>(null);
@@ -62,7 +60,6 @@ const Dashboard = () => {
   const [profit, setProfit] = useState(0);
   const [isLoadingProfit, setIsLoadingProfit] = useState(true);
   const [hasActiveContractBot, setHasActiveContractBot] = useState(false);
-  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -106,7 +103,6 @@ const Dashboard = () => {
         if (!walletsData || walletsData.length === 0) {
           setWallets([]);
           setTotalBalance(0);
-          setAnimatedTotalBalance(0);
           return;
         }
         
@@ -148,7 +144,6 @@ const Dashboard = () => {
         
         const total = enhancedWallets.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
         setTotalBalance(total);
-        setAnimatedTotalBalance(total);
         
         // Check if any contract bot is active
         setHasActiveContractBot(!!contractData && contractData.length > 0);
@@ -215,47 +210,6 @@ const Dashboard = () => {
     fetchArbitrageStatus();
     fetchProfitData();
   }, [user]);
-
-  // Animate total balance if there's an active contract bot
-  useEffect(() => {
-    if (hasActiveContractBot && !hideBalance) {
-      let lastTimestamp = 0;
-      let currentAmount = totalBalance;
-      let direction = -1; // Start by decreasing
-      let phaseTime = 0;
-      
-      const animate = (timestamp: number) => {
-        if (!lastTimestamp) lastTimestamp = timestamp;
-        const delta = timestamp - lastTimestamp;
-        lastTimestamp = timestamp;
-        
-        phaseTime += delta;
-        
-        // Change direction occasionally
-        if (phaseTime > 2000) {
-          direction = Math.random() > 0.5 ? 1 : -1;
-          phaseTime = 0;
-        }
-        
-        // Calculate new amount with subtle fluctuation
-        const change = Math.random() * 0.1 * direction;
-        currentAmount = Math.max(0, currentAmount + change);
-        
-        setAnimatedTotalBalance(currentAmount);
-        animationFrameRef.current = requestAnimationFrame(animate);
-      };
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
-      
-      return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      };
-    } else {
-      setAnimatedTotalBalance(totalBalance);
-    }
-  }, [hasActiveContractBot, totalBalance, hideBalance]);
 
   // Calculate profit whenever total balance or total received changes
   useEffect(() => {
@@ -334,8 +288,8 @@ const Dashboard = () => {
             {isLoadingBalance ? (
               <div className="text-2xl font-bold my-1 animate-pulse">Loading...</div>
             ) : (
-              <div className={`text-2xl font-bold my-1 text-white ${hasActiveContractBot && !hideBalance ? 'animate-pulse' : ''}`}>
-                {formatBalance(hasActiveContractBot ? animatedTotalBalance : totalBalance)}
+              <div className="text-2xl font-bold my-1 text-white">
+                {formatBalance(totalBalance)}
               </div>
             )}
             
@@ -353,7 +307,7 @@ const Dashboard = () => {
               <div className="flex items-center mt-1 mb-2">
                 <Bot className="h-4 w-4 mr-1 text-red-400" />
                 <span className="text-xs text-red-400">
-                  Contract Bot Active - Balance is fluctuating
+                  Contract Bot Active - Use caution with connected wallets
                 </span>
               </div>
             )}
