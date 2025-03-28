@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Plus } from 'lucide-react';
+import { Bot, Plus, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import AddThirdPartyModal from '@/components/bots/AddThirdPartyModal';
@@ -28,6 +29,7 @@ const Bots = () => {
   const [botToToggle, setBotToToggle] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [animatedBalances, setAnimatedBalances] = useState<Record<string, number>>({});
   
   // Fetch wallets for passing to components
   const { data: wallets = [], isLoading: walletsLoading } = useQuery({
@@ -133,6 +135,79 @@ const Bots = () => {
       wallet_id: app.wallet_id || null,
     })),
   ];
+
+  // Animation effect for active contract bots
+  useEffect(() => {
+    const activeContractBot = allBots.find(b => b.id === 'contract-api' && b.is_active);
+    const activeArbitrageBot = allBots.find(b => b.id === 'arbitrage' && b.is_active);
+    
+    if ((activeContractBot || activeArbitrageBot) && wallets.length > 0) {
+      // Start animations for active bots
+      const newAnimatedBalances = { ...animatedBalances };
+      
+      if (activeContractBot?.wallet_id) {
+        const contractWallet = wallets.find(w => w.id === activeContractBot.wallet_id);
+        if (contractWallet) {
+          newAnimatedBalances[contractWallet.id] = contractWallet.balance;
+        }
+      }
+      
+      if (activeArbitrageBot?.wallet_id) {
+        const arbitrageWallet = wallets.find(w => w.id === activeArbitrageBot.wallet_id);
+        if (arbitrageWallet) {
+          newAnimatedBalances[arbitrageWallet.id] = arbitrageWallet.balance;
+        }
+      }
+      
+      setAnimatedBalances(newAnimatedBalances);
+      
+      // Set up animation frame
+      let lastTimestamp = 0;
+      
+      const animate = (timestamp: number) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        
+        const updatedBalances = { ...newAnimatedBalances };
+        let hasChanges = false;
+        
+        // Update each animated balance
+        Object.keys(updatedBalances).forEach(walletId => {
+          const isContractWallet = activeContractBot?.wallet_id === walletId;
+          
+          if (isContractWallet || activeArbitrageBot?.wallet_id === walletId) {
+            const wallet = wallets.find(w => w.id === walletId);
+            if (!wallet) return;
+            
+            const currentBalance = updatedBalances[walletId];
+            const baseBalance = wallet.balance;
+            
+            // Generate random change (more volatile for contract bot)
+            const volatilityFactor = isContractWallet ? 0.2 : 0.05;
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const change = Math.random() * volatilityFactor * direction;
+            
+            // Ensure balance stays within reasonable range
+            const newBalance = Math.max(baseBalance * 0.8, currentBalance + change);
+            updatedBalances[walletId] = newBalance;
+            hasChanges = true;
+          }
+        });
+        
+        if (hasChanges) {
+          setAnimatedBalances(updatedBalances);
+          requestAnimationFrame(animate);
+        }
+      };
+      
+      const animationId = requestAnimationFrame(animate);
+      
+      return () => {
+        cancelAnimationFrame(animationId);
+      };
+    }
+  }, [allBots, wallets]);
 
   const handleBotClick = (botId: string) => {
     navigate(`/bots/${botId}`);
@@ -293,10 +368,17 @@ const Bots = () => {
       <div className="space-y-3">
         {allBots.map((bot) => {
           const walletDetails = getWalletDetails(bot.wallet_id);
+          const isActive = bot.is_active;
+          const walletId = bot.wallet_id;
+          
+          // Determine if this is a contract bot for special styling
+          const isContractBot = bot.id === 'contract-api';
+          const hasAnimatedBalance = isActive && walletId && animatedBalances[walletId];
+          
           return (
             <Card 
               key={bot.id} 
-              className="p-4 hover:bg-secondary/10 transition-colors cursor-pointer"
+              className={`p-4 hover:bg-secondary/10 transition-colors cursor-pointer ${isActive && isContractBot ? 'border-red-500 border' : ''}`}
               onClick={() => handleBotClick(bot.id)}
             >
               <div className="flex justify-between items-center">
@@ -305,12 +387,30 @@ const Bots = () => {
                   <span className={`text-xs ${bot.is_active ? 'text-green-500' : 'text-yellow-500'}`}>
                     {bot.is_active ? 'Running' : 'Stopped'}
                   </span>
+                  {isActive && walletDetails && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Connected to: {walletDetails.name}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-muted-foreground">Income</span>
-                  <span className="font-medium">
-                    {walletDetails ? `$${walletDetails.balance.toFixed(2)}` : `$${bot.income.toFixed(2)}`}
+                  <span className={`font-medium ${hasAnimatedBalance ? 'animate-pulse' : ''}`}>
+                    {hasAnimatedBalance 
+                      ? `$${animatedBalances[walletId].toFixed(2)}`
+                      : walletDetails 
+                        ? `$${walletDetails.balance.toFixed(2)}` 
+                        : `$${bot.income.toFixed(2)}`
+                    }
                   </span>
+                  
+                  {isActive && isContractBot && (
+                    <div className="flex items-center text-xs text-red-500 mt-1">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Wallet in use
+                    </div>
+                  )}
+                  
                   <AlertDialog open={isDialogOpen && botToToggle === bot.id} onOpenChange={setIsDialogOpen}>
                     <AlertDialogTrigger asChild>
                       <Button 

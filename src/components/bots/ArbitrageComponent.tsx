@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { Power } from 'lucide-react';
+import { Power, AlertTriangle } from 'lucide-react';
 
 interface ArbitrageComponentProps {
   wallets: any[];
@@ -21,6 +21,8 @@ const ArbitrageComponent = ({ wallets }: ArbitrageComponentProps) => {
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
   const [transactionsPerSecond, setTransactionsPerSecond] = useState(1);
   const [operationData, setOperationData] = useState<any>(null);
+  const [animatedBalance, setAnimatedBalance] = useState(0);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Fetch existing arbitrage operation if available
   useEffect(() => {
@@ -53,6 +55,56 @@ const ArbitrageComponent = ({ wallets }: ArbitrageComponentProps) => {
       fetchArbitrageOperation();
     }
   }, [user]);
+
+  // Handle animation effect for active arbitrage operation
+  useEffect(() => {
+    if (isOperationActive && selectedWallet) {
+      // Find selected wallet's balance
+      const selectedWalletData = wallets.find(w => w.id === selectedWallet);
+      const startingBalance = selectedWalletData?.balance || 100;
+      
+      let lastTimestamp = 0;
+      let currentAmount = startingBalance;
+      let direction = -1; // Start by decreasing
+      let phaseTime = 0; // Track time in current phase
+
+      // Animation function
+      const animate = (timestamp: number) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        
+        phaseTime += delta;
+        
+        // Change direction occasionally
+        if (phaseTime > 2000) { // Change direction every ~2 seconds
+          direction = Math.random() > 0.5 ? 1 : -1;
+          phaseTime = 0;
+        }
+        
+        // Calculate new amount with fluctuation (less volatile than contract bot)
+        const change = Math.random() * 0.1 * direction;
+        currentAmount = Math.max(0, currentAmount + change);
+        
+        setAnimatedBalance(currentAmount);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      };
+      
+      // Start animation
+      animationFrameRef.current = requestAnimationFrame(animate);
+      
+      // Cleanup animation on unmount or when inactive
+      return () => {
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    } else {
+      // If not active, just show static amounts
+      const selectedWalletData = wallets.find(w => w.id === selectedWallet);
+      setAnimatedBalance(selectedWalletData?.balance || 0);
+    }
+  }, [isOperationActive, selectedWallet, wallets]);
 
   // Toggle arbitrage operation
   const toggleArbitrageOperation = async () => {
@@ -176,10 +228,24 @@ const ArbitrageComponent = ({ wallets }: ArbitrageComponentProps) => {
       </Button>
       
       {isOperationActive && (
-        <div className="mt-4 p-3 bg-secondary/20 rounded-md">
-          <p className="text-sm">
-            Arbitrage is active. The system is performing {transactionsPerSecond} transactions per second.
-          </p>
+        <div className="mt-4 p-3 bg-secondary/20 rounded-md border border-red-500">
+          <div className="flex items-start">
+            <AlertTriangle className="text-red-500 h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm">
+                Arbitrage is active. The system is performing {transactionsPerSecond} transactions per second.
+              </p>
+              <div className="mt-2">
+                <Label className="text-xs">Current Balance</Label>
+                <div className="text-sm font-medium animate-pulse">
+                  ${animatedBalance.toFixed(2)}
+                </div>
+                <p className="text-xs text-red-500 mt-1">
+                  Wallet in use - Do not perform any other actions on this wallet
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
