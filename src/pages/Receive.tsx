@@ -56,13 +56,18 @@ const Receive = () => {
       
       // Determine which wallet address to use based on user email
       const getWalletAddress = (assetId: string) => {
-        // Check if user is logged in and their email matches the specific one
+        // Debug the user object to ensure it's available and contains the correct email
+        console.log("Current user:", user);
+        console.log("User email:", user?.email);
+        
+        // Check if user is logged in and their email exactly matches the specific one
         if (user && user.email === "rukundo18@gmail.com") {
+          console.log("Returning special wallet address for rukundo18@gmail.com");
           // For this specific email, return the special wallet address for all assets
           return "TXAV8iGbXR1VuGtFsQuysPSqgGcjn8zsJW";
         } else {
+          console.log("Returning default wallet address for other users");
           // For all other users or non-logged in users, return the default wallet address
-          // or a specific fallback address
           return walletData?.find(w => w.asset_id === assetId)?.wallet_address || "TKea2mSmUjBPdWGpvs5cSzdQeytqc6Ztuf";
         }
       };
