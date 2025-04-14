@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Copy, QrCode, Share2 } from "lucide-react";
+import { ArrowLeft, Copy, QrCode, Share2, AlertCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +24,14 @@ interface CryptoAsset {
   network: string;
 }
 
+interface WalletAddress {
+  id: string;
+  user_id: string;
+  asset_id: string;
+  wallet_address: string | null;
+  status: string;
+}
+
 const Receive = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,10 +49,61 @@ const Receive = () => {
     }
   }, [location.state]);
 
+  // Fetch user wallet addresses
+  const { data: userWalletAddresses = [], isLoading: isLoadingWalletAddresses } = useQuery({
+    queryKey: ["user-wallet-addresses", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('wallet_addresses')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error("Error fetching wallet addresses:", error);
+        throw error;
+      }
+      
+      return data as WalletAddress[];
+    },
+    enabled: !!user,
+  });
+
+  // Function to ensure a wallet address exists for a given asset
+  const ensureWalletAddressExists = async (assetId: string) => {
+    if (!user) return null;
+    
+    // Check if wallet address already exists for this asset
+    const existingAddress = userWalletAddresses.find(address => address.asset_id === assetId);
+    if (existingAddress) return existingAddress;
+    
+    // Create a new pending wallet address entry
+    try {
+      const { data, error } = await supabase
+        .from('wallet_addresses')
+        .insert([
+          { user_id: user.id, asset_id: assetId, status: 'pending' }
+        ])
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error("Error creating wallet address:", error);
+        throw error;
+      }
+      
+      return data as WalletAddress;
+    } catch (error) {
+      console.error("Failed to create wallet address entry:", error);
+      return null;
+    }
+  };
+
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ["receive-crypto-assets"],
     queryFn: async () => {
-      // Fetch wallet addresses from the database
+      // Fetch default wallet addresses from the database
       const { data: walletData, error } = await supabase
         .from('asset_wallets')
         .select('*');
@@ -54,27 +113,34 @@ const Receive = () => {
         throw error;
       }
       
-      // Determine which wallet address to use based on user email
-      const getWalletAddress = (assetId: string) => {
-        // Debug the user object to ensure it's available and contains the correct email
-        console.log("Current user:", user);
-        console.log("User email:", user?.email);
-        
-        // Check if user is logged in and their email exactly matches the specific one
-        if (user && user.email === "rukundo18@gmail.com") {
-          console.log("Returning special wallet address for rukundo18@gmail.com");
-          // For this specific email, return the special wallet address for all assets
-          return "TXAV8iGbXR1VuGtFsQuysPSqgGcjn8zsJW";
+      // Determine which wallet address to use based on availability in user's wallet_addresses
+      const getWalletAddress = async (assetId: string) => {
+        if (user) {
+          // Check if user has a specific wallet address for this asset
+          const existingAddress = userWalletAddresses.find(addr => addr.asset_id === assetId);
+          
+          if (existingAddress) {
+            if (existingAddress.status === 'active' && existingAddress.wallet_address) {
+              // Return active wallet address
+              return existingAddress.wallet_address;
+            } else {
+              // Return pending status
+              return "pending";
+            }
+          }
+          
+          // Ensure a wallet address entry exists for this asset
+          await ensureWalletAddressExists(assetId);
+          return "pending";
         } else {
-          console.log("Returning default wallet address for other users");
-          // For all other users or non-logged in users, return the default wallet address
+          // For non-logged-in users, return the default wallet address
           return walletData?.find(w => w.asset_id === assetId)?.wallet_address || "TKea2mSmUjBPdWGpvs5cSzdQeytqc6Ztuf";
         }
       };
       
       // This would be replaced with actual API data in production
       // but for now we'll merge our wallet data with hardcoded asset data
-      return [
+      const assetsList = [
         {
           id: "bnb",
           symbol: "BNB",
@@ -83,7 +149,7 @@ const Receive = () => {
           price: 590.7,
           priceChange: 2.45,
           balance: 0,
-          walletAddress: getWalletAddress("bnb"),
+          walletAddress: await getWalletAddress("bnb"),
           network: walletData?.find(w => w.asset_id === "bnb")?.network || "Binance Smart Chain"
         },
         {
@@ -94,7 +160,7 @@ const Receive = () => {
           price: 88985.99,
           priceChange: 3.7,
           balance: 0,
-          walletAddress: getWalletAddress("btc"),
+          walletAddress: await getWalletAddress("btc"),
           network: walletData?.find(w => w.asset_id === "btc")?.network || "Bitcoin"
         },
         {
@@ -105,7 +171,7 @@ const Receive = () => {
           price: 2180.39,
           priceChange: 2.29,
           balance: 0,
-          walletAddress: getWalletAddress("eth-erc20"),
+          walletAddress: await getWalletAddress("eth-erc20"),
           network: walletData?.find(w => w.asset_id === "eth-erc20")?.network || "Ethereum"
         },
         {
@@ -116,7 +182,7 @@ const Receive = () => {
           price: 2180.39,
           priceChange: 2.29,
           balance: 0,
-          walletAddress: getWalletAddress("eth-arbitrum"),
+          walletAddress: await getWalletAddress("eth-arbitrum"),
           network: walletData?.find(w => w.asset_id === "eth-arbitrum")?.network || "Arbitrum"
         },
         {
@@ -127,7 +193,7 @@ const Receive = () => {
           price: 0.2524,
           priceChange: 2.38,
           balance: 0,
-          walletAddress: getWalletAddress("pol"),
+          walletAddress: await getWalletAddress("pol"),
           network: walletData?.find(w => w.asset_id === "pol")?.network || "Polygon"
         },
         {
@@ -138,7 +204,7 @@ const Receive = () => {
           price: 0.5991,
           priceChange: 1.76,
           balance: 0,
-          walletAddress: getWalletAddress("sfp"),
+          walletAddress: await getWalletAddress("sfp"),
           network: walletData?.find(w => w.asset_id === "sfp")?.network || "Binance Smart Chain"
         },
         {
@@ -149,7 +215,7 @@ const Receive = () => {
           price: 3.033,
           priceChange: -2.31,
           balance: 0,
-          walletAddress: getWalletAddress("ton"),
+          walletAddress: await getWalletAddress("ton"),
           network: walletData?.find(w => w.asset_id === "ton")?.network || "TON"
         },
         {
@@ -160,11 +226,14 @@ const Receive = () => {
           price: 0.2436,
           priceChange: 1.96,
           balance: 0,
-          walletAddress: getWalletAddress("trx"),
+          walletAddress: await getWalletAddress("trx"),
           network: walletData?.find(w => w.asset_id === "trx")?.network || "TRON"
         }
       ] as CryptoAsset[];
-    }
+      
+      return assetsList;
+    },
+    enabled: !!userWalletAddresses,
   });
 
   // Filter assets based on search query
@@ -189,17 +258,23 @@ const Receive = () => {
   };
   
   const handleCopyAddress = () => {
-    if (selectedAsset) {
+    if (selectedAsset && selectedAsset.walletAddress && selectedAsset.walletAddress !== "pending") {
       navigator.clipboard.writeText(selectedAsset.walletAddress);
       toast({
         title: "Address copied",
         description: "Wallet address copied to clipboard",
       });
+    } else {
+      toast({
+        title: "Address not available",
+        description: "Your wallet address is still being provisioned",
+        variant: "destructive",
+      });
     }
   };
   
   const handleShareAddress = async () => {
-    if (selectedAsset && navigator.share) {
+    if (selectedAsset && selectedAsset.walletAddress !== "pending" && navigator.share) {
       try {
         await navigator.share({
           title: `${selectedAsset.symbol} Wallet Address`,
@@ -212,6 +287,12 @@ const Receive = () => {
       } catch (error) {
         console.error("Error sharing:", error);
       }
+    } else if (selectedAsset?.walletAddress === "pending") {
+      toast({
+        title: "Address not available",
+        description: "Your wallet address is still being provisioned",
+        variant: "destructive",
+      });
     } else {
       toast({
         title: "Share not supported",
@@ -310,60 +391,88 @@ const Receive = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
-            <GlassCard variant="dark" className="items-center text-center py-6">
-              <div className="mb-4">
-                <div className="bg-white w-48 h-48 mx-auto rounded-lg flex items-center justify-center p-2">
-                  <QRCode 
-                    value={selectedAsset.walletAddress}
-                    size={176}
-                    level="H"
-                    fgColor="#000000"
-                    bgColor="#FFFFFF"
-                  />
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="text-lg font-medium mb-2">{selectedAsset.symbol} ({selectedAsset.name}) Address</h3>
-                <div className="flex items-center justify-center">
-                  <p className="text-muted-foreground text-sm font-mono bg-muted/10 px-3 py-2 rounded truncate max-w-56">
-                    {selectedAsset.walletAddress.length > 20 
-                      ? `${selectedAsset.walletAddress.substring(0, 10)}...${selectedAsset.walletAddress.substring(selectedAsset.walletAddress.length - 10)}`
-                      : selectedAsset.walletAddress}
+            {selectedAsset.walletAddress === "pending" ? (
+              <GlassCard variant="dark" className="items-center text-center py-6">
+                <div className="mb-6 text-amber-400">
+                  <AlertCircle className="h-16 w-16 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Wallet Being Provisioned</h3>
+                  <p className="text-sm text-muted-foreground px-6">
+                    Your {selectedAsset.symbol} wallet address is currently being provisioned by our team. 
+                    This process may take up to 24 hours. You will be notified once your wallet is ready to use.
                   </p>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-2 text-gold"
-                    onClick={handleCopyAddress}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
                 </div>
-              </div>
-              
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Only send {selectedAsset.symbol} ({selectedAsset.network}) to this address. Sending any other coins may result in permanent loss.
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button 
-                    className="bg-gold hover:bg-gold-dark text-primary-foreground"
-                    onClick={handleCopyAddress}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Address
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={handleShareAddress}
-                  >
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share
-                  </Button>
+                
+                <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg p-4 max-w-xs mx-auto mb-4">
+                  <p className="text-xs text-amber-400">
+                    For security purposes, all wallet addresses are manually provisioned by our team.
+                  </p>
                 </div>
-              </div>
-            </GlassCard>
+                
+                <Button 
+                  variant="outline"
+                  onClick={handleGoBack}
+                  className="mt-2"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Go Back
+                </Button>
+              </GlassCard>
+            ) : (
+              <GlassCard variant="dark" className="items-center text-center py-6">
+                <div className="mb-4">
+                  <div className="bg-white w-48 h-48 mx-auto rounded-lg flex items-center justify-center p-2">
+                    <QRCode 
+                      value={selectedAsset.walletAddress}
+                      size={176}
+                      level="H"
+                      fgColor="#000000"
+                      bgColor="#FFFFFF"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium mb-2">{selectedAsset.symbol} ({selectedAsset.name}) Address</h3>
+                  <div className="flex items-center justify-center">
+                    <p className="text-muted-foreground text-sm font-mono bg-muted/10 px-3 py-2 rounded truncate max-w-56">
+                      {selectedAsset.walletAddress.length > 20 
+                        ? `${selectedAsset.walletAddress.substring(0, 10)}...${selectedAsset.walletAddress.substring(selectedAsset.walletAddress.length - 10)}`
+                        : selectedAsset.walletAddress}
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="ml-2 text-gold"
+                      onClick={handleCopyAddress}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Only send {selectedAsset.symbol} ({selectedAsset.network}) to this address. Sending any other coins may result in permanent loss.
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button 
+                      className="bg-gold hover:bg-gold-dark text-primary-foreground"
+                      onClick={handleCopyAddress}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Address
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={handleShareAddress}
+                    >
+                      <Share2 className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
           </motion.div>
         )}
       </div>
