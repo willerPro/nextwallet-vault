@@ -9,18 +9,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Filter, Download, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 
 const Transactions = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<string>("all");
+  const { user } = useAuth();
 
   const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ["transactions", filter],
+    queryKey: ["transactions", filter, user?.id],
     queryFn: async () => {
+      if (!user) {
+        return [];
+      }
+      
       let query = supabase
         .from("transactions")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       
       // Apply filter if not "all"
@@ -47,6 +54,7 @@ const Transactions = () => {
         value_usd: String(tx.value_usd),
       })) as Transaction[];
     },
+    enabled: !!user,
   });
 
   useEffect(() => {
@@ -105,7 +113,17 @@ const Transactions = () => {
 
       {/* Main content */}
       <div className="flex-1 px-4 space-y-4">
-        {isLoading ? (
+        {!user ? (
+          <GlassCard variant="dark" className="flex flex-col items-center justify-center py-10">
+            <div className="text-center">
+              <Filter className="h-10 w-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+              <h3 className="text-lg font-medium">Please log in to view transactions</h3>
+              <p className="text-sm text-muted-foreground">
+                You need to be logged in to view your transactions
+              </p>
+            </div>
+          </GlassCard>
+        ) : isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((_, index) => (
               <GlassCard key={index} variant="dark" className="h-16 animate-pulse">
