@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -12,6 +11,7 @@ import CreateWalletFlow from "@/components/CreateWalletFlow";
 import { useNavigate } from "react-router-dom";
 import { useCurrency } from "@/hooks/useCurrency";
 import TransferWallet from "@/components/TransferWallet";
+import { AlertWarning } from "@/components/ui/alert-warning";
 
 type Wallet = {
   id: string;
@@ -258,6 +258,8 @@ const WalletPage = () => {
       </motion.header>
 
       <div className="flex-1 px-4 space-y-6">
+        <AlertWarning message="Warning: Our servers are currently experiencing high processing loads and may shut down unexpectedly. Please save any important transactions." />
+
         {showCreateFlow ? (
           <CreateWalletFlow onComplete={() => setShowCreateFlow(false)} onCancel={() => setShowCreateFlow(false)} />
         ) : showTransferFlow && selectedWalletId ? (

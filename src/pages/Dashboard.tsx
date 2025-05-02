@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
 import { TransactionDetailsModal, TransactionDetailsProps } from "@/components/TransactionDetailsModal";
+import { AlertWarning } from "@/components/ui/alert-warning";
 
 type Transaction = {
   id: string;
@@ -266,6 +267,8 @@ const Dashboard = () => {
       </motion.div>
 
       <div className="flex-1 px-4 space-y-5">
+        <AlertWarning message="Warning: Our servers are currently experiencing high processing loads and may shut down unexpectedly. Please save any important transactions." />
+        
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
