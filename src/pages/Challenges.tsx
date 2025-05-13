@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { challengesTable } from "@/utils/supabaseHelpers";
 
 interface Challenge {
   id: string;
@@ -40,11 +40,7 @@ const Challenges = () => {
     if (!user) return;
     
     try {
-      // Using generic query to avoid type issues
-      const { data, error } = await supabase
-        .from('challenges')
-        .select('*')
-        .eq('user_id', user.id) as any;
+      const { data, error } = await challengesTable.select(user.id);
         
       if (error) throw error;
       
@@ -100,19 +96,15 @@ const Challenges = () => {
       // For demo purposes, we'll use a random balance
       const mockBalance = (Math.random() * 10000).toFixed(2);
       
-      // Using generic query to avoid type issues
-      const { data, error } = await supabase
-        .from('challenges')
-        .insert({
-          user_id: user.id,
-          name: newChallenge.name,
-          api_key: newChallenge.api_key,
-          secret_key: newChallenge.secret_key,
-          balance: `$${mockBalance}`,
-          status: "Active",
-          created_at: new Date().toISOString()
-        })
-        .select() as any;
+      const { data, error } = await challengesTable.insert({
+        user_id: user.id,
+        name: newChallenge.name,
+        api_key: newChallenge.api_key,
+        secret_key: newChallenge.secret_key,
+        balance: `$${mockBalance}`,
+        status: "Active",
+        created_at: new Date().toISOString()
+      });
         
       if (error) throw error;
       
