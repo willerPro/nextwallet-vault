@@ -5,13 +5,18 @@ import { Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
+interface Investor {
+  id: number;
+  name: string;
+  email: string;
+  initialCapital: string;
+  profit: string;
+  status: string;
+  date: string;
+}
+
 const Investors = () => {
-  // Example investors data
-  const [investors] = useState([
-    { id: 1, name: "Alpha Capital", amount: "$250,000", status: "Active", date: "2025-01-15" },
-    { id: 2, name: "Beta Ventures", amount: "$175,000", status: "Active", date: "2025-02-22" },
-    { id: 3, name: "Gamma Investments", amount: "$320,000", status: "Pending", date: "2025-04-10" },
-  ]);
+  const [investors, setInvestors] = useState<Investor[]>([]);
 
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
@@ -40,32 +45,43 @@ const Investors = () => {
               <CardTitle className="text-lg">Active Investors</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {investors.map((investor) => (
-                    <TableRow key={investor.id}>
-                      <TableCell className="font-medium">{investor.name}</TableCell>
-                      <TableCell>{investor.amount}</TableCell>
-                      <TableCell>
-                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                          investor.status === "Active" ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500"
-                        }`}>
-                          {investor.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>{investor.date}</TableCell>
+              {investors.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Initial Capital</TableHead>
+                      <TableHead>Profit</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {investors.map((investor) => (
+                      <TableRow key={investor.id}>
+                        <TableCell className="font-medium">{investor.name}</TableCell>
+                        <TableCell>{investor.email}</TableCell>
+                        <TableCell>{investor.initialCapital}</TableCell>
+                        <TableCell>{investor.profit}</TableCell>
+                        <TableCell>
+                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
+                            investor.status === "Active" ? "bg-green-500/20 text-green-500" : "bg-yellow-500/20 text-yellow-500"
+                          }`}>
+                            {investor.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>{investor.date}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <p className="text-muted-foreground">No investors found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Add investors to see them listed here</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
