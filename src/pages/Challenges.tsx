@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Award, Plus, Key, FileText } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,6 +26,7 @@ const Challenges = () => {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [newChallenge, setNewChallenge] = useState({
     name: "",
     api_key: "",
@@ -45,19 +46,24 @@ const Challenges = () => {
         
       if (error) throw error;
       
-      if (data) {
-        setChallenges(data as Challenge[]);
+      setChallenges(data as Challenge[] || []);
+    } catch (error: any) {
+      // Only show toast for errors after initial load attempt
+      if (!isInitialLoad) {
+        console.error("Error loading challenges:", error);
+        toast.error("Failed to load challenges");
+      } else {
+        console.error("Initial load error:", error);
       }
-    } catch (error) {
-      console.error("Error loading challenges:", error);
-      toast.error("Failed to load challenges");
+    } finally {
+      setIsInitialLoad(false);
     }
   };
   
   // Load challenges when component mounts
-  useState(() => {
+  useEffect(() => {
     loadChallenges();
-  });
+  }, [user]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -87,19 +93,17 @@ const Challenges = () => {
       // For demo purposes, we'll use a random balance
       const mockBalance = (Math.random() * 10000).toFixed(2);
       
-      const challengeData = {
-        user_id: user.id,
-        name: newChallenge.name,
-        api_key: newChallenge.api_key,
-        secret_key: newChallenge.secret_key,
-        balance: `$${mockBalance}`,
-        status: "Active",
-        created_at: new Date().toISOString()
-      };
-      
       const { data, error } = await supabase
         .from("challenges")
-        .insert(challengeData)
+        .insert({
+          user_id: user.id,
+          name: newChallenge.name,
+          api_key: newChallenge.api_key,
+          secret_key: newChallenge.secret_key,
+          balance: `$${mockBalance}`,
+          status: "Active",
+          created_at: new Date().toISOString()
+        })
         .select();
         
       if (error) throw error;
@@ -111,9 +115,15 @@ const Challenges = () => {
       // Reload challenges to show the new one
       loadChallenges();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding challenge:", error);
-      toast.error("Failed to add challenge account");
+      
+      // Handle case where the table might not exist yet
+      if (error.code === "42P01") {
+        toast.error("Database setup in progress. Please try again in a few minutes.");
+      } else {
+        toast.error("Failed to add challenge account");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -142,6 +152,9 @@ const Challenges = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Challenge Account</DialogTitle>
+              <DialogDescription>
+                Connect your funded account by entering the API details below.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddChallenge} className="space-y-4">
               <div className="space-y-2">
