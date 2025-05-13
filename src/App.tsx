@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -10,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import WalletPage from "./pages/Wallet";
 import WalletDetails from "./pages/WalletDetails";
 import Profile from "./pages/Profile";
+import Investors from "./pages/Investors";
+import Challenges from "./pages/Challenges";
 import Transactions from "./pages/Transactions";
 import Receive from "./pages/Receive";
 import Send from "./pages/Send";
@@ -72,6 +73,8 @@ function App() {
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/wallet/:id" element={<WalletDetails />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/investors" element={<Investors />} />
+          <Route path="/challenges" element={<Challenges />} />
           <Route path="/change-pin" element={<ChangePinPage />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/receive" element={<Receive />} />

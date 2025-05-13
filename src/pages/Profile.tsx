@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Users, Award } from "lucide-react";
 
 // Custom hooks
 import { useProfile } from "@/hooks/useProfile";
@@ -17,6 +18,7 @@ import ProfileSettings from "@/components/profile/ProfileSettings";
 import AccountSection from "@/components/profile/AccountSection";
 import LogoutButton from "@/components/profile/LogoutButton";
 import EditProfileForm from "@/components/profile/EditProfileForm";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -92,6 +94,10 @@ const Profile = () => {
       .substring(0, 2);
   };
 
+  const navigateToPage = (page: string) => {
+    navigate(`/${page}`);
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col pb-24">
       {/* Header */}
@@ -107,6 +113,32 @@ const Profile = () => {
           open={open} 
           getInitials={getInitials} 
         />
+
+        {/* New Menu Options */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="space-y-4"
+        >
+          <Card onClick={() => navigateToPage('investors')} className="cursor-pointer hover:bg-secondary/10 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between p-4">
+              <CardTitle className="text-base flex items-center">
+                <Users className="h-5 w-5 mr-2 text-gold" />
+                Investors
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          
+          <Card onClick={() => navigateToPage('challenges')} className="cursor-pointer hover:bg-secondary/10 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between p-4">
+              <CardTitle className="text-base flex items-center">
+                <Award className="h-5 w-5 mr-2 text-gold" />
+                Challenges
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </motion.div>
 
         {/* Settings */}
         <ProfileSettings />
