@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -271,10 +272,10 @@ const Dashboard = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <GlassCard className={`bg-black border ${hasActiveContractBot ? 'border-red-500/30' : 'border-gold/30'} p-4`}>
+          <GlassCard className={`bg-black border border-gold/30 p-4`}>
             <div className="flex justify-between items-center mb-2">
-              <h2 className={`text-sm font-medium ${hasActiveContractBot ? 'text-red-400' : 'text-gold'}`}>
-                Total Balance {hasActiveContractBot && <span className="text-xs">(Bot Active)</span>}
+              <h2 className="text-sm font-medium text-gold">
+                Total Balance {/* hasActiveContractBot && <span className="text-xs">(Bot Active)</span> */}
               </h2>
               <Button 
                 variant="ghost" 
@@ -303,6 +304,7 @@ const Dashboard = () => {
               </div>
             )}
             
+            {/* Temporarily commenting out the contract bot warning
             {hasActiveContractBot && (
               <div className="flex items-center mt-1 mb-2">
                 <Bot className="h-4 w-4 mr-1 text-red-400" />
@@ -311,6 +313,7 @@ const Dashboard = () => {
                 </span>
               </div>
             )}
+            */}
             
             <div className="flex gap-2 mt-3">
               <Button 
