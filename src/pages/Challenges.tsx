@@ -20,6 +20,7 @@ interface Challenge {
   balance: string;
   status: string;
   created_at: string;
+  user_id: string;
 }
 
 const Challenges = () => {
@@ -39,10 +40,11 @@ const Challenges = () => {
     if (!user) return;
     
     try {
+      // Using generic query to avoid type issues
       const { data, error } = await supabase
-        .from("challenges")
-        .select("*")
-        .eq("user_id", user.id);
+        .from('challenges')
+        .select('*')
+        .eq('user_id', user.id) as any;
         
       if (error) throw error;
       
@@ -54,6 +56,11 @@ const Challenges = () => {
         toast.error("Failed to load challenges");
       } else {
         console.error("Initial load error:", error);
+        
+        // If table doesn't exist yet, handle gracefully
+        if (error.code === "42P01") {
+          console.log("Challenges table doesn't exist yet. Will be created on first insert.");
+        }
       }
     } finally {
       setIsInitialLoad(false);
@@ -93,8 +100,9 @@ const Challenges = () => {
       // For demo purposes, we'll use a random balance
       const mockBalance = (Math.random() * 10000).toFixed(2);
       
+      // Using generic query to avoid type issues
       const { data, error } = await supabase
-        .from("challenges")
+        .from('challenges')
         .insert({
           user_id: user.id,
           name: newChallenge.name,
@@ -104,7 +112,7 @@ const Challenges = () => {
           status: "Active",
           created_at: new Date().toISOString()
         })
-        .select();
+        .select() as any;
         
       if (error) throw error;
       
