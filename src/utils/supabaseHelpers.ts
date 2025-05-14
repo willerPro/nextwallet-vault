@@ -9,7 +9,7 @@ export const challengesTable = {
   select: async (userId: string) => {
     // Use the raw SQL query capabilities of Supabase to bypass type checking
     const { data, error } = await supabase
-      .from('challenges')
+      .from('challenges' as any)
       .select('*')
       .eq('user_id', userId)
       .returns<any[]>();
@@ -19,7 +19,7 @@ export const challengesTable = {
   
   insert: async (challenge: any) => {
     const { data, error } = await supabase
-      .from('challenges')
+      .from('challenges' as any)
       .insert(challenge)
       .select()
       .returns<any[]>();

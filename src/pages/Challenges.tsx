@@ -1,15 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Award, Plus, Key, FileText } from "lucide-react";
+import { Award, Info, Calendar, User, Wallet, Bell, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertWarning } from "@/components/ui/alert-warning";
 import { useAuth } from "@/context/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 import { challengesTable } from "@/utils/supabaseHelpers";
 
 interface Challenge {
@@ -23,240 +24,207 @@ interface Challenge {
   user_id: string;
 }
 
+const MOCK_CHALLENGE = {
+  balance: "$ 97,860",
+  planType: "Express |50k",
+  accountType: "Swap",
+  tradingCycle: {
+    startDate: "May 4, 2025",
+    endDate: "May 31, 2025"
+  }
+};
+
 const Challenges = () => {
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [isNoticeDialogOpen, setIsNoticeDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [newChallenge, setNewChallenge] = useState({
-    name: "",
-    api_key: "",
-    secret_key: ""
-  });
   const { user } = useAuth();
+  const { profile } = useProfile(user);
   
-  // Load challenges from database
-  const loadChallenges = async () => {
+  // Get the user's first name
+  const firstName = profile?.full_name?.split(" ")[0] || "Tim";
+  
+  // Load challenge from database
+  const loadChallenge = async () => {
     if (!user) return;
+    
+    setIsLoading(true);
     
     try {
       const { data, error } = await challengesTable.select(user.id);
         
       if (error) throw error;
       
-      setChallenges(data as Challenge[] || []);
-    } catch (error: any) {
-      // Only show toast for errors after initial load attempt
-      if (!isInitialLoad) {
-        console.error("Error loading challenges:", error);
-        toast.error("Failed to load challenges");
+      // If user has a challenge, use it; otherwise use mock data
+      if (data && data.length > 0) {
+        setChallenge(data[0] as Challenge);
       } else {
-        console.error("Initial load error:", error);
-        
-        // If table doesn't exist yet, handle gracefully
-        if (error.code === "42P01") {
-          console.log("Challenges table doesn't exist yet. Will be created on first insert.");
-        }
+        // Just mock for display
+        console.log("No challenge data found, using mock data");
+        // We'll still use the MOCK_CHALLENGE for display purposes
       }
-    } finally {
-      setIsInitialLoad(false);
-    }
-  };
-  
-  // Load challenges when component mounts
-  useEffect(() => {
-    loadChallenges();
-  }, [user]);
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewChallenge(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
-  const handleAddChallenge = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user) {
-      toast.error("You must be logged in to add challenges");
-      return;
-    }
-    
-    if (!newChallenge.name || !newChallenge.api_key || !newChallenge.secret_key) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      // In a real app, we would validate the API key and fetch the initial balance
-      // For demo purposes, we'll use a random balance
-      const mockBalance = (Math.random() * 10000).toFixed(2);
-      
-      const { data, error } = await challengesTable.insert({
-        user_id: user.id,
-        name: newChallenge.name,
-        api_key: newChallenge.api_key,
-        secret_key: newChallenge.secret_key,
-        balance: `$${mockBalance}`,
-        status: "Active",
-        created_at: new Date().toISOString()
-      });
-        
-      if (error) throw error;
-      
-      toast.success("Challenge account added successfully!");
-      setIsDialogOpen(false);
-      setNewChallenge({ name: "", api_key: "", secret_key: "" });
-      
-      // Reload challenges to show the new one
-      loadChallenges();
-      
     } catch (error: any) {
-      console.error("Error adding challenge:", error);
+      console.error("Error loading challenge:", error);
       
-      // Handle case where the table might not exist yet
       if (error.code === "42P01") {
-        toast.error("Database setup in progress. Please try again in a few minutes.");
-      } else {
-        toast.error("Failed to add challenge account");
+        console.log("Challenges table doesn't exist yet");
       }
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // Load challenge when component mounts
+  useEffect(() => {
+    loadChallenge();
+  }, [user]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col pb-24">
+    <div className="min-h-screen w-full flex flex-col pb-24 p-4">
       {/* Header */}
       <motion.header 
-        className="p-4 flex items-center justify-between"
+        className="flex items-center mb-6"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="flex items-center">
-          <Award className="h-5 w-5 mr-2 text-gold" />
-          <h1 className="text-xl font-bold">Challenges</h1>
-        </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="flex items-center gap-1">
-              <Plus className="h-4 w-4" /> Add Challenge
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Challenge Account</DialogTitle>
-              <DialogDescription>
-                Connect your funded account by entering the API details below.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddChallenge} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center gap-1">
-                  <FileText className="h-4 w-4" /> Challenge Name
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={newChallenge.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter challenge name"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="api_key" className="flex items-center gap-1">
-                  <Key className="h-4 w-4" /> API Key
-                </Label>
-                <Input
-                  id="api_key"
-                  name="api_key"
-                  value={newChallenge.api_key}
-                  onChange={handleInputChange}
-                  placeholder="Enter API key"
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="secret_key" className="flex items-center gap-1">
-                  <Key className="h-4 w-4" /> Secret Key
-                </Label>
-                <Input
-                  id="secret_key"
-                  name="secret_key"
-                  type="password"
-                  value={newChallenge.secret_key}
-                  onChange={handleInputChange}
-                  placeholder="Enter secret key"
-                  required
-                />
-              </div>
-              
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Adding..." : "Add Challenge Account"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Award className="h-7 w-7 mr-3 text-amber-500" />
+        <h1 className="text-2xl font-bold">Trading Challenge</h1>
       </motion.header>
 
       {/* Main content */}
-      <div className="flex-1 px-4 space-y-6">
+      <div className="flex-1 space-y-6">
+        {/* User Welcome Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
         >
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Your Challenge Accounts</CardTitle>
+          <GlassCard variant="gold" className="mb-6">
+            <div className="flex items-center mb-4">
+              <User className="h-5 w-5 mr-2 text-amber-500" />
+              <h2 className="text-lg font-semibold">Hello {firstName}</h2>
+            </div>
+            <p className="text-gray-200">Currently, you have an Express account</p>
+          </GlassCard>
+        </motion.div>
+
+        {/* Account Balance Card */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
+          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-900/10 to-amber-500/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Wallet className="h-5 w-5 mr-2 text-amber-500" />
+                Balance
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {challenges.length === 0 ? (
-                <div className="text-center p-6 text-muted-foreground">
-                  <Award className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p>No challenge accounts found.</p>
-                  <p className="text-sm">Add your first challenge account to get started.</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Balance</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {challenges.map((challenge) => (
-                      <TableRow key={challenge.id}>
-                        <TableCell className="font-medium">{challenge.name}</TableCell>
-                        <TableCell>{challenge.balance}</TableCell>
-                        <TableCell>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                            challenge.status === "Active" ? "bg-green-500/20 text-green-500" : 
-                            challenge.status === "Failed" ? "bg-red-500/20 text-red-500" : 
-                            "bg-yellow-500/20 text-yellow-500"
-                          }`}>
-                            {challenge.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>{new Date(challenge.created_at).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <div className="text-3xl font-bold text-amber-500">{MOCK_CHALLENGE.balance}</div>
             </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Account Details */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Award className="h-5 w-5 mr-2 text-primary" />
+                Account Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                <span className="text-muted-foreground">Plan Type</span>
+                <span className="font-medium">{MOCK_CHALLENGE.planType}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Account Type</span>
+                <span className="font-medium">{MOCK_CHALLENGE.accountType}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Trading Cycle Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Calendar className="h-5 w-5 mr-2 text-primary" />
+                Trading Cycle Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center border-b border-border/30 pb-2">
+                <span className="text-muted-foreground">Start Date</span>
+                <span className="font-medium">{MOCK_CHALLENGE.tradingCycle.startDate}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">End Date</span>
+                <span className="font-medium">{MOCK_CHALLENGE.tradingCycle.endDate}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Information and Actions */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
+          className="mt-6"
+        >
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <Bell className="h-5 w-5 mr-2 text-primary" />
+                Notifications & Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 mr-3 text-amber-500" />
+                  <p className="text-sm">Your challenge is active and running</p>
+                </div>
+                
+                <Dialog open={isNoticeDialogOpen} onOpenChange={setIsNoticeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="border-amber-500/30 hover:bg-amber-500/10 w-full mt-2">
+                      <Info className="h-4 w-4 mr-2" />
+                      View Important Notice
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Important Information</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 text-sm text-muted-foreground">
+                      <p>
+                        Our server checks for accounts that have reached the profit target every day at 11:45 PM GMT+3 and GMT+2 during daylight saving period. So, once you hit the profit target, please wait until that time to see the KYC and agreement appear in your dashboard.
+                      </p>
+                      <p>
+                        After you complete the KYC and sign the agreement, you should receive your FundedNext account or an email from our team within 24 hours of reaching your profit target. If you don't get either after that time, feel free to reach out to our live support for help!
+                      </p>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t border-border/30 pt-4">
+              <Button className="w-full" variant="default">
+                <Award className="h-4 w-4 mr-2" />
+                View Trading Performance
+              </Button>
+            </CardFooter>
           </Card>
         </motion.div>
       </div>
